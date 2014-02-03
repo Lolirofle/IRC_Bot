@@ -1,9 +1,9 @@
 CC=gcc
 
-CFLAGS=-Wall -std=gnu99 -I.
+CFLAGS=-Wall -std=gnu99
 CFLAGS_BIN=
 CFLAGS_LIB=-fPIC
-LDFLAGS=-llolie -Llolie -largtable2
+LDFLAGS=-llolie -largtable2
 LDFLAGS_BIN=-ldl -Wl,-export-dynamic
 LDFLAGS_LIB=
 

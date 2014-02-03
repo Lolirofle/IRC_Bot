@@ -1,5 +1,6 @@
 #include <stdio.h> //Input/output
 #include <string.h>
+#include <argtable2.h>
 
 #include <lolie/Stringp.h>
 #include <lolie/LinkedList.h>
@@ -13,14 +14,12 @@
 #include "IRCBot.h"
 #include "api/Plugin.h"
 
-#include "argtable2.h"
-
 //TODO: "&&"" to combine commands and maybe `command` to insert a command with output as return value to an argument
 //TODO: Help pages for a list of commands and syntax, explanation, etc.
 //TODO: Command aliases
 
 struct IRCBot bot;
-char* default_channel;
+char* defaultChannel;
 
 Stringp string_splitted(Stringp str,size_t(*delimiterFunc)(Stringp str),bool(*onSplitFunc)(const char* begin,const char* end)){
 	const char* arg_begin=str.ptr;
@@ -70,7 +69,7 @@ void onMessageFunc(const irc_connection* connection,const irc_message* message){
 		case IRC_MESSAGE_TYPE_NUMBER:
 			switch(message->command_type_number){
 				case 1:
-					IRCBot_joinChannel(&bot,STRINGCP(default_channel,strlen(default_channel)));
+					IRCBot_joinChannel(&bot,STRINGCP(defaultChannel,strlen(defaultChannel)));
 					//IRCBot_joinChannel(&bot,STRINGCP("#toa",4));
 					break;
 				case IRC_MESSAGE_TYPENO_ERR_NONICKNAMEGIVEN:
@@ -130,28 +129,27 @@ void onMessageFunc(const irc_connection* connection,const irc_message* message){
 	}
 }
 
-int main(int argc, char **argv){
+int main(int argc,char **argv){
+	int exitCode = 0;
 	
-	int exitcode = 0;
 	//argtable
-	
-	struct arg_str*	nick 	= arg_str1("n", "nick", "<string>",	"nick of the bot");
-	struct arg_str*	server 	= arg_str1(NULL, NULL,  "<string>",	"ip/domain name");
-	struct arg_str* channel = arg_str1("c", "channel", "<string>", "channel to join initially");
-	struct arg_int*	port	= arg_int0("p", "port", "<int>", 	"da port");
-	struct arg_lit*	help 	= arg_lit0("h", "help", "this exakt help");
-	struct arg_end* 	end 	= arg_end(20);
-	void* argtable[] = {nick, server, port, channel, help, end};
+	struct arg_str*	nick    = arg_str1("n", "nick", "<string>",	"Sets the nickname of the bot");
+	struct arg_str*	server  = arg_str1(NULL, NULL,  "<string>",	"IP/hostname to connect to");
+	struct arg_str* channel = arg_str1("c", "channel", "<string>", "Channel to join initially");
+	struct arg_int*	port    = arg_int0("p", "port", "<int>", 	"da port");
+	struct arg_lit*	help    = arg_lit0("h", "help", "Shows this help");
+	struct arg_end* end     = arg_end(20);
+	void* argtable[] = {nick,server,port,channel,help,end};
 	int nerrors;
 	
-	if (arg_nullcheck(argtable) != 0){
-		/* NULL entries were detected, some allocations must have failed */
-		printf("%s: insufficient memory\n", "toabot");
-		exitcode = 1;
-		goto exit;
+	if(arg_nullcheck(argtable) != 0){
+		//NULL entries were detected, some allocations must have failed
+		fputs("Error: Insufficient memory\n",stderr);
+		exitCode = 1;
+		goto Exit;
 	}
 	
-	
+	//Default port
 	port->ival[0] = 6697;
 	
 	nerrors = arg_parse(argc, argv, argtable); 
@@ -160,18 +158,22 @@ int main(int argc, char **argv){
 		printf("Toabot: The extensible irc bot.\n");
 		printf("https://github.com/Lolirofle/IRC_Bot\n");
 		arg_print_glossary(stdout,argtable,"  %-25s %s\n");
-		exitcode = 0;
-		goto exit;
+		exitCode = EXIT_SUCCESS;
+		goto Exit;
 	}
 	if(nerrors > 0){
 		arg_print_errors(stdout,end,"toabot");
 		printf("Use --help, you fool");
-		exitcode = 1;
-		goto exit;
+		exitCode = EXIT_FAILURE;
+		goto Exit;
 	}
-	//The right arguments are supplied, on to the normal main.
-	default_channel = channel->sval[0];
+	//The right arguments are supplied, on to the normal main
+	defaultChannel = channel->sval[0];
 	
+	/////////////////////////////////////////////////////////
+	// Begin main program
+	//
+
 	//Top border
 	for(size_t i=IRCBot_signature.length;i>0;--i)
 		putchar('=');
@@ -186,8 +188,9 @@ int main(int argc, char **argv){
 	putchar('\n');
 	putchar('\n');
 
-	int botExit;
 	Bot:{
+		int botExit;
+		
 		//Initialize bot structure
 		IRCBot_initialize(&bot);
 
@@ -229,10 +232,10 @@ int main(int argc, char **argv){
 			goto Bot;
 	}
 	
-	exitcode = EXIT_SUCCESS;
+	exitCode = EXIT_SUCCESS;
 	
-	exit:
+	Exit:
 		arg_freetable(argtable,sizeof(argtable)/sizeof(argtable[0]));
 
-	return exitcode;
+	return exitCode;
 }
