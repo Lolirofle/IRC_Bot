@@ -27,7 +27,7 @@ void irc_send_rawf(const irc_connection* connection,const char* format,...){
 irc_connection irc_connect(const char* host,unsigned short port){
 	struct addrinfo hints,
 	               *result;
-	char portStr[6];portStr[long2str((long)port,STRINGP(portStr,6))]='\0';
+	char portStr[6];portStr[intToDecStr((long)port,STRINGP(portStr,6))]='\0';
 
 	printf("Connecting to `%s:%s`\n",host,portStr);
 

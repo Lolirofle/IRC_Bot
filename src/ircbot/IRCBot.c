@@ -164,7 +164,7 @@ bool IRCBot_disconnect(struct IRCBot* bot){
 	return true;
 }
 
-void IRCBot_setNickname(struct IRCBot* bot,Stringcp name){//TODO: Some kind of error when the nickname is occupied. Doesn't have to be in the setNickname function.
+void IRCBot_setNickname(struct IRCBot* bot,Stringcp name){
 	//Free existing string if any
 	if(!Stringp_isEmpty(bot->nickname))
 		Stringp_free_malloc(&bot->nickname);
@@ -275,18 +275,20 @@ void IRCBot_partChannel(struct IRCBot* bot,Stringcp channel){
 			return;
 	}
 
-	for(LinkedList** listNode=&bot->channels;*listNode!=NULL;listNode=&(*listNode)->next){
-		if(((String*)(*listNode)->ptr)->length==channel.length && memcmp(((String*)(*listNode)->ptr)->data,channel.ptr,channel.length)==0){
-			String* channelName=LinkedList_pop(listNode);
+	//for(LinkedList** listNode=&bot->channels;*listNode!=NULL;listNode=&(*listNode)->next)
+	LinkedList_removeFirst(&bot->channels,function(bool,(void* _channelName){
+		String*const channelName=_channelName;
 
+		if(channelName->length==channel.length && memcmp(channelName->data,channel.ptr,channel.length)==0){
 			//Send PART message
 			irc_part_channel(bot->connection,channelName->data);
 
 			free(channelName);
 			
-			break;
+			return true;
 		}
-	}
+		return false;
+	}));
 }
 
 void IRCBot_sendMessage(struct IRCBot* bot,Stringcp target,Stringcp message){

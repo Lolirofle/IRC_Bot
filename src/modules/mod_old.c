@@ -184,14 +184,14 @@ bool plugin_onLoad(struct IRCBot* bot){
 			if(arg->free.end-arg->free.begin>0)//If argument 1 exists (random <max>)
 				while(true)
 					if(read_ptr>arg->free.begin && (read_ptr>=arg->free.end || read_ptr[0]==' ')){
-						max=decStr2int(arg->free.begin,MIN(read_ptr-arg->free.begin,9));
+						max=decStrToInt(arg->free.begin,MIN(read_ptr-arg->free.begin,9));
 						arg->free.begin=++read_ptr;
 
 						if(arg->free.end-arg->free.begin>0)//If argument 2 exists (random <min> <max>)
 							while(true)
 								if(read_ptr>arg->free.begin && (read_ptr>=arg->free.end || read_ptr[0]==' ')){
 									min=max;
-									max=decStr2int(arg->free.begin,MIN(read_ptr-arg->free.begin,9));
+									max=decStrToInt(arg->free.begin,MIN(read_ptr-arg->free.begin,9));
 									arg->free.begin=++read_ptr;
 									break;
 								}
