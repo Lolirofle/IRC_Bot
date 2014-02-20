@@ -49,7 +49,7 @@ Stringp string_splitted(Stringp str,size_t(*delimiterFunc)(Stringp str),bool(*on
 
 Stringp string_splitted_delim(Stringp str,Stringp delimiter,bool(*onSplitFunc)(const char* begin,const char* end)){
 	return string_splitted(str,function(size_t,(Stringp str){
-		if(str.length>=delimiter.length && Memory_equals(str.ptr,delimiter.ptr,delimiter.length))
+		if(str.length>=delimiter.length && memeq(str.ptr,delimiter.ptr,delimiter.length))
 			return delimiter.length;
 		else
 			return 0;

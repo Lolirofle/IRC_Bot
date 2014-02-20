@@ -6,7 +6,7 @@
 #include <string.h>
 
 #include <lolie/Stringp.h>//Null terminatd Stringp operations
-#include <lolie/Memory.h>//Memory_equals
+#include <lolie/Memory.h>//memeq
 #include <lolie/LinkedList.h>
 #include <lolie/ControlStructures.h>
 #include <lolie/Math.h>
@@ -134,27 +134,27 @@ void irc_parse_message(const irc_connection* connection,Stringcp raw_message,voi
 						}
 						break;
 					case 4:
-						if(Memory_equals(read_ptr_begin,"JOIN",4)){
+						if(memeq(read_ptr_begin,"JOIN",4)){
 							message.command_type = IRC_MESSAGE_TYPE_JOIN;
 							message.command.channels=NULL;
-						}else if(Memory_equals(read_ptr_begin,"PART",4)){
+						}else if(memeq(read_ptr_begin,"PART",4)){
 							message.command_type = IRC_MESSAGE_TYPE_PART;
 							message.command.channels=NULL;
-						}else if(Memory_equals(read_ptr_begin,"NICK",4))
+						}else if(memeq(read_ptr_begin,"NICK",4))
 							message.command_type = IRC_MESSAGE_TYPE_NICK;
-						else if(Memory_equals(read_ptr_begin,"KICK",4))
+						else if(memeq(read_ptr_begin,"KICK",4))
 							message.command_type = IRC_MESSAGE_TYPE_KICK;
 						break;
 					case 5:
-						if(Memory_equals(read_ptr_begin,"TOPIC",5))
+						if(memeq(read_ptr_begin,"TOPIC",5))
 							message.command_type = IRC_MESSAGE_TYPE_TOPIC;
 						break;
 					case 6:
-						if(Memory_equals(read_ptr_begin,"NOTICE",6))
+						if(memeq(read_ptr_begin,"NOTICE",6))
 							message.command_type = IRC_MESSAGE_TYPE_NOTICE;
 						break;
 					case 7:
-						if(Memory_equals(read_ptr_begin,"PRIVMSG",7))
+						if(memeq(read_ptr_begin,"PRIVMSG",7))
 							message.command_type = IRC_MESSAGE_TYPE_PRIVMSG;
 						break;
 				}
@@ -213,7 +213,7 @@ void irc_parse_message(const irc_connection* connection,Stringcp raw_message,voi
 			return;
 	}
 	//Else if it is a ping request 
-	else if(Memory_equals(raw_message.ptr,"PING",4)){
+	else if(memeq(raw_message.ptr,"PING",4)){
 		char tmp[raw_message.length];
 		memcpy(tmp,raw_message.ptr,raw_message.length);
 		tmp[1]='O';
