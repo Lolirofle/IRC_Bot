@@ -1,22 +1,24 @@
 -- import Data.String.UTF8
 import Data.Char
+import Data.List
 
-sign_gap   = ""
-char_gap   = " "
-word_gap   = "  "
+sign_gap = ""
+char_gap = " "
+word_gap = " "
 
-data Morse_Charcode = Short | Long
+data MorseSignal = Short | Long
 
-morse_char :: [Morse_Charcode] -> String
-morse_char sequence = concat (map f sequence)
-	where f Short = "·"
-	      f Long  = "-"
+morse_char :: [MorseSignal] -> String
+morse_char sequence = concatMap toStr sequence
+	where toStr Short = "·"
+	      toStr Long  = "-"
 
 morse :: String -> String
-morse str = foldl f "" str
+morse str = intercalate char_gap (map toMorse str)
 	where
-		f result ' '  = result ++ word_gap
-		f result char = result ++ (case toLower char of
+		toMorse :: Char -> String
+		toMorse char = case toLower char of
+			' ' -> word_gap
 			'a' -> morse_char [Short,Long]
 			'b' -> morse_char [Long,Short,Short,Short]
 			'c' -> morse_char [Long,Short,Long,Short]
@@ -62,7 +64,7 @@ morse str = foldl f "" str
 			'.' -> morse_char [Short,Long,Short,Long,Short,Long]
 			',' -> morse_char [Long,Long,Short,Short,Long,Long]
 			'?' -> morse_char [Short,Short,Long,Long,Short,Short]
---			'\'' -> morse_char,[Short,Long,Long,Long,Long,Short]
+			'\'' -> morse_char[Short,Long,Long,Long,Long,Short]
 			'!' -> morse_char [Long,Short,Long,Short,Long,Long]
 			'/' -> morse_char [Long,Short,Short,Long,Short]
 			'(' -> morse_char [Long,Short,Long,Long,Short]
@@ -77,7 +79,6 @@ morse str = foldl f "" str
 			'"' -> morse_char [Short,Long,Short,Short,Long,Short]
 			'$' -> morse_char [Short,Short,Short,Long,Short,Short,Long]
 			'@' -> morse_char [Short,Long,Long,Short,Long,Short]
-			_   -> "(" ++ [char] ++ ")") ++ char_gap
+			_   -> ['(',char,')']
 
-main = do
-	interact morse
+main = interact morse

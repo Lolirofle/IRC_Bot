@@ -1,2 +1,6 @@
 # Don't ignore here
 !*
+
+morse
+morse.o
+morse.hi
