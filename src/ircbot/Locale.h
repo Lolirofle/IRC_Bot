@@ -30,6 +30,7 @@ struct Locale{
 
 	Stringcp missing_argument;
 	Stringcp unknown_command;
+	Stringcp command_error;
 };
 
 enum Languages{

@@ -342,9 +342,21 @@ void IRCBot_performCommand(struct IRCBot* bot,Stringcp target,const char* comman
 			return;
 	}
 
-	if((currentCommand=getCommand(&bot->commands,commandName)) && currentCommand->func(bot,target,&arg))
-		return;
-	else{
+	//Look up command, if command is found
+	if((currentCommand=getCommand(&bot->commands,commandName))){
+		//Perform command, check for return value that indicates error
+		if(!currentCommand->func(bot,target,&arg)){
+			//Send error message about command failure
+			int len = Stringp_vcopy(STRINGP(write_buffer,IRC_WRITE_BUFFER_LEN),4,
+				locale[language].command_error,
+				STRINGCP(": \"",3),
+				commandName,
+				STRINGCP("\"",1)
+			);
+			irc_send_message(bot->connection,target,STRINGCP(write_buffer,len));
+		}
+	}else{
+		//Send error message about command not found
 		int len = Stringp_vcopy(STRINGP(write_buffer,IRC_WRITE_BUFFER_LEN),4,
 			locale[language].unknown_command,
 			STRINGCP(": \"",3),

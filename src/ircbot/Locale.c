@@ -50,7 +50,8 @@ const struct Locale locale[2]={
 		},
 
 		.missing_argument={"Argument fattas",15},
-		.unknown_command={"Okänt kommando: ",14+1}
+		.unknown_command={"Okänt kommando: ",14+1},
+		.command_error={"Fel under körning av kommando: ",31+1}
 	},
 	[LANG_ENGLISH]={
 		.lang_name={"english",7},
@@ -99,6 +100,7 @@ const struct Locale locale[2]={
 		},
 
 		.missing_argument={"Missing arguments",17},
-		.unknown_command={"Unknown command: ",17}
+		.unknown_command={"Unknown command: ",17},
+		.command_error={"Command Error: ",15}
 	}
 };
