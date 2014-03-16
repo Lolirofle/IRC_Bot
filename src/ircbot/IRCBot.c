@@ -117,10 +117,12 @@ bool IRCBot_connect(struct IRCBot* bot,Stringcp host,unsigned short port){
 		bot->error.code=IRCBOT_ERROR_MEMORY;
 		return false;
 	}
-	*bot->connection=irc_connect(bot->hostname.ptr,port);
+
+	bot->connection->initial_channel = NULL;
+	bot->connection->verbosity = IRCINTERFACE_VERBOSITY_NORMAL;
 
 	//Error checking
-	if(bot->connection->id<0){
+	if(!irc_connect(bot->hostname.ptr,port,bot->connection) || bot->connection->id<0){
 		bot->error.code=IRCBOT_ERROR_CONNECT;
 		bot->error.message.length=46*sizeof(char)+8;
 		char* str=malloc(bot->error.message.length);

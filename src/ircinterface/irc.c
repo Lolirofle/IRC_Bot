@@ -24,7 +24,7 @@ void irc_send_rawf(const irc_connection* connection,const char* format,...){
 	irc_send_rawnt(connection,format_buffer);
 }
 
-irc_connection irc_connect(const char* host,unsigned short port){
+bool irc_connect(const char* host,unsigned short port,irc_connection* out_connection){
 	struct addrinfo hints,
 	               *result;
 	char portStr[6];portStr[intToDecStr((long)port,STRINGP(portStr,6))]='\0';
@@ -35,18 +35,21 @@ irc_connection irc_connect(const char* host,unsigned short port){
 	hints.ai_family = AF_INET;
 	hints.ai_socktype = SOCK_STREAM;
 	getaddrinfo(host,portStr,&hints,&result);
-	const int id = socket(result->ai_family,result->ai_socktype,result->ai_protocol);
+	out_connection->id = socket(result->ai_family,result->ai_socktype,result->ai_protocol);
 
-	int connection = connect(id,result->ai_addr,result->ai_addrlen);
-	if(connection<0)
+	int connection = connect(out_connection->id,result->ai_addr,result->ai_addrlen);
+	if(connection<0){
 		printf("Error: connect() returned %i\n",connection);
+		return false;
+	}
 
 	freeaddrinfo(result);
 
 	//Initiate read buffer
-	char* read_buffer = malloc(IRC_BUFFER_LENGTH+1);//TODO: Error checking for this, the connection and rewrite the irc_connect signature for returning bool and use a out parameter for irc_connection
+	if(!(out_connection->read_buffer = malloc(IRC_BUFFER_LENGTH+1)))
+		return false;//TODO: May leak memory on failure
 
-	return (irc_connection){.id = id,.read_buffer = read_buffer};
+	return true;
 }
 
 bool irc_disconnect(const irc_connection* connection){

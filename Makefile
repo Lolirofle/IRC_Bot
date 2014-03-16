@@ -3,7 +3,7 @@ CC=gcc
 CFLAGS=-Wall -std=gnu99
 CFLAGS_BIN=
 CFLAGS_LIB=-fPIC
-LDFLAGS=-llolie -largtable2
+LDFLAGS=-llolie
 LDFLAGS_BIN=-ldl -Wl,-export-dynamic
 LDFLAGS_LIB=
 
@@ -13,7 +13,7 @@ SRCDIR=src
 SRCDIR_BIN=ircbot
 SRCDIR_LIB=ircinterface
 
-OUT_BIN=ircbot
+OUT_BIN=toabot
 OUT_LIB=ircinterface
 
 vpath %.c $(SRCDIR)

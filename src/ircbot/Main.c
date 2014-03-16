@@ -1,6 +1,6 @@
 #include <stdio.h> //Input/output
 #include <string.h>
-#include <argtable2.h>
+#include <argp.h>
 
 #include <lolie/Stringp.h>
 #include <lolie/LinkedList.h>
@@ -69,7 +69,8 @@ void onMessageFunc(const irc_connection* connection,const irc_message* message){
 		case IRC_MESSAGE_TYPE_NUMBER:
 			switch(message->command_type_number){
 				case 1:
-					IRCBot_joinChannel(&bot,STRINGCP(defaultChannel,strlen(defaultChannel)));
+					if(connection->initial_channel)
+						IRCBot_joinChannel(&bot,STRINGCP(connection->initial_channel,strlen(connection->initial_channel)));
 					//IRCBot_joinChannel(&bot,STRINGCP("#toa",4));
 					break;
 				case IRC_MESSAGE_TYPENO_ERR_NONICKNAMEGIVEN:
@@ -129,47 +130,98 @@ void onMessageFunc(const irc_connection* connection,const irc_message* message){
 	}
 }
 
+static struct argp_option program_arg_options[] = {
+//  |   Long name   |Key|       Arg       |       Flags       | Description
+	{"<hostname/IP>", 0 ,             NULL,         OPTION_DOC,"IP/hostname to connect to" },
+	{"nick"         ,'n',         "Toabot",                  0,"Sets the nickname of the bot" },
+	{"port"         ,'p',           "6667",                  0,"Port to connect to" },
+	{"channel"      ,'c', "<channel name>",                  0,"Initial channel to join" },
+	{"verbose"      ,'v',             NULL,                  0,"Produce verbose output" },
+	{"quiet"        ,'q',             NULL,                  0,"Don't produce any output" },
+	{0}
+};
+
+struct program_options{
+	char* hostname;
+	char* nickname;
+	char* channel;
+	unsigned int port;
+	enum irc_connection_verbosity verbosity;
+}options;
+
+/**
+ * Parses a single option using the key defined in the `argp_option` structure
+ */
+static error_t program_arg_parse_option(int key,char* arg,struct argp_state* state){
+	struct program_options*const program_options = state->input;
+
+	switch(key){
+		case 'n':
+			program_options->nickname = arg;
+			break;
+		case 'p':
+			{
+				long i = strtol(arg,NULL,10);
+				if(i<0 || i>65535)
+					return 1;
+				program_options->port = (unsigned int)i;
+			}
+			break;
+		case 'c':
+			program_options->channel = arg;
+			break;
+		case 'q':
+			program_options->verbosity = IRCINTERFACE_VERBOSITY_SILENT;
+			break;
+		case 'v':
+			program_options->verbosity = IRCINTERFACE_VERBOSITY_VERBOSE;
+			break;
+		case ARGP_KEY_ARG:
+			//If there's too many arguments
+			if(state->arg_num>=1)
+				argp_usage(state);
+	
+			switch(state->arg_num){
+				case 0:
+					program_options->hostname = arg;
+					break;
+			}
+			break;
+		case ARGP_KEY_END:
+			//If there's not enough arguments
+			if(state->arg_num<1)
+				argp_usage(state);
+			break;
+		default:
+			return ARGP_ERR_UNKNOWN;
+	}
+	return 0;
+}
+
+static struct argp program_argp = {
+	program_arg_options,
+	program_arg_parse_option,
+	"IP/hostname",
+	"Toabot, the extensible IRC bot.\nhttps://github.com/Lolirofle/IRC_Bot"
+};
+
 int main(int argc,char **argv){
 	int exitCode = 0;
 	
-	//argtable
-	struct arg_str*	nick    = arg_str1("n", "nick", "<string>",	"Sets the nickname of the bot");
-	struct arg_str*	server  = arg_str1(NULL, NULL,  "<string>",	"IP/hostname to connect to");
-	struct arg_str* channel = arg_str1("c", "channel", "<string>", "Channel to join initially");
-	struct arg_int*	port    = arg_int0("p", "port", "<int>", 	"da port");
-	struct arg_lit*	help    = arg_lit0("h", "help", "Shows this help");
-	struct arg_end* end     = arg_end(20);
-	void* argtable[] = {nick,server,port,channel,help,end};
-	int nerrors;
-	
-	if(arg_nullcheck(argtable) != 0){
-		//NULL entries were detected, some allocations must have failed
-		fputs("Error: Insufficient memory\n",stderr);
-		exitCode = 1;
-		goto Exit;
-	}
-	
-	//Default port
-	port->ival[0] = 6667;
-	
-	nerrors = arg_parse(argc, argv, argtable); 
-	
-	if(help->count > 0){
-		printf("Toabot: The extensible irc bot.\n");
-		printf("https://github.com/Lolirofle/IRC_Bot\n");
-		arg_print_glossary(stdout,argtable,"  %-25s %s\n");
-		exitCode = EXIT_SUCCESS;
-		goto Exit;
-	}
-	if(nerrors > 0){
-		arg_print_errors(stdout,end,"toabot");
-		printf("Use --help, you fool");
-		exitCode = EXIT_FAILURE;
-		goto Exit;
-	}
-	//The right arguments are supplied, on to the normal main
-	defaultChannel = channel->sval[0];
-	
+	/////////////////////////////////////////////////////////
+	// Program arguments
+	//
+
+	//Default options
+	struct program_options options = {
+		.nickname = "Toabot",
+		.channel = NULL,
+		.port = 6667,
+		.verbosity = IRCINTERFACE_VERBOSITY_NORMAL
+	};
+
+	argp_parse(&program_argp,argc,argv,0,0,&options);
+
 	/////////////////////////////////////////////////////////
 	// Begin main program
 	//
@@ -199,9 +251,11 @@ int main(int argc,char **argv){
 			fputs("Warning: Failed to initialize modules\n",stderr);
 
 		//Connect to server
-		IRCBot_connect(&bot,Stringcp_from_cstr(server->sval[0]),port->ival[0]);
+		IRCBot_connect(&bot,Stringcp_from_cstr(options.hostname),options.port);
+		bot.connection->verbosity = options.verbosity;
+		bot.connection->initial_channel = options.channel;
 
-		Stringcp name=Stringcp_from_cstr(nick->sval[0]);
+		Stringcp name=Stringcp_from_cstr(options.nickname);
 		IRCBot_setNickname(&bot,name);
 		IRCBot_setUsername(&bot,name);
 		IRCBot_setCommandPrefixc(&bot,'!');
@@ -233,9 +287,6 @@ int main(int argc,char **argv){
 	}
 	
 	exitCode = EXIT_SUCCESS;
-	
-	Exit:
-		arg_freetable(argtable,sizeof(argtable)/sizeof(argtable[0]));
 
 	return exitCode;
 }

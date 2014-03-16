@@ -62,6 +62,13 @@ typedef struct irc_message{
 typedef struct irc_connection{
 	int id;//Id of the connection, got from socket()
 	char* read_buffer;//Read buffer, used in irc_read_message
+
+	char* initial_channel;
+	enum irc_connection_verbosity{
+		IRCINTERFACE_VERBOSITY_SILENT,
+		IRCINTERFACE_VERBOSITY_NORMAL,
+		IRCINTERFACE_VERBOSITY_VERBOSE,
+	}verbosity;
 }irc_connection;
 
 /**
@@ -97,7 +104,7 @@ void irc_send_rawf(const irc_connection* connection,const char* format,...);
  * @param host Hostname (address/ip) of the irc server
  * @param port Port for the hostname of the irc server
  */
-irc_connection irc_connect(const char* host,unsigned short port);
+bool irc_connect(const char* host,unsigned short port,irc_connection* out_connection);
 
 /**
  * Sets nickname for irc connection
