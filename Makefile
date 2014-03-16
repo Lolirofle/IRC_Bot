@@ -1,7 +1,7 @@
 CC=gcc
 
 CFLAGS=-Wall -std=gnu99
-CFLAGS_BIN=
+CFLAGS_BIN=-DTIMESTAMP=\"$(TIMESTAMP)\"
 CFLAGS_LIB=-fPIC
 LDFLAGS=-llolie
 LDFLAGS_BIN=-ldl -Wl,-export-dynamic
@@ -15,6 +15,8 @@ SRCDIR_LIB=ircinterface
 
 OUT_BIN=toabot
 OUT_LIB=ircinterface
+
+TIMESTAMP:=$(shell date "+%Y%m%d-%H%M%S")
 
 vpath %.c $(SRCDIR)
 rwildcard=$(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2) $(filter $(subst *,%,$2),$d))

@@ -10,7 +10,14 @@
 #include <lolie/String.h>
 #include <lolie/ControlStructures.h>
 
-const Stringcp IRCBot_signature={IRCBOT_NAME " v" IRCBOT_VERSION,sizeof(IRCBOT_NAME " v" IRCBOT_VERSION)-1};
+//If TIMESTAMP is defined, use it in the version signature
+#ifdef TIMESTAMP
+#	define IRCBOT_VERSIONSIG IRCBOT_VERSION"-"TIMESTAMP
+#else
+#	define IRCBOT_VERSIONSIG IRCBOT_VERSION
+#endif
+
+const Stringcp IRCBot_signature={IRCBOT_NAME " v" IRCBOT_VERSIONSIG,sizeof(IRCBOT_NAME " v" IRCBOT_VERSIONSIG)-1};
 
 /**
  * Allocates a string wrapped in a Stringp, copying the string from `src` and null-terminates it.
