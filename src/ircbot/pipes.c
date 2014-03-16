@@ -66,7 +66,10 @@ struct PipedStream p2open(char* path,char* const argv[]){
 			close(inPipe[0]);
 			close(outPipe[1]);
 
-			execl("/bin/sh","sh","-c",path,(char*)NULL);//This is how one of the popen.c does with popen()
+			//Execute program
+			execv(path,argv);
+
+			//This will be reached if error
 			_exit(1);
 
 		//Parent process (Current process)

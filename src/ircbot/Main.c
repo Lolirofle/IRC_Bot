@@ -150,7 +150,7 @@ int main(int argc,char **argv){
 	}
 	
 	//Default port
-	port->ival[0] = 6697;
+	port->ival[0] = 6667;
 	
 	nerrors = arg_parse(argc, argv, argtable); 
 	

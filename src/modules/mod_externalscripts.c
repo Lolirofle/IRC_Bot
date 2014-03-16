@@ -3,6 +3,7 @@
 #include <ctype.h>
 #include <dlfcn.h>
 #include <dirent.h>
+#include <unistd.h>
 #include <ircbot/api/IRCBot.h>
 #include <ircbot/api/Command.h>
 #include <ircbot/api/Commands.h>
@@ -31,6 +32,11 @@ bool plugin_onCommand(struct IRCBot* bot,Stringcp target,Stringcp command,union 
 	}
 	*cmd_iterator='\0';
 
+	//Check for file existence and execution permissions. //TODO: Is it all right to do it like this? Small possibility of race conditions? Should chnage the way p2open works instead? Does it even matter?
+	//If this returns OK and the program continues but the file cannot be executed, it will return no output and that the external command didn't return success.
+	if(access(cmd,X_OK)==-1)
+		return true;
+
 	//Open program
 	char* argv[]={cmd+SCRIPT_PATH_LEN,NULL};
 	struct PipedStream stream=p2open(cmd,argv);
@@ -44,11 +50,20 @@ bool plugin_onCommand(struct IRCBot* bot,Stringcp target,Stringcp command,union 
 	//Output from program,output
 	size_t len=fread(buffer,sizeof(char),BUFFER_LENGTH,stream.out);
 	p2flushRead(stream);
+
+	//Close program
+	int returnCode = p2close(stream);
+
+	//Check for error in program execution
+	if(returnCode!=0)
+		IRCBot_sendMessage(bot,target,STRINGCP("Error: External command did not return EXIT_SUCCESS",51));
+
+	//Send output message
 	if(len>1)
 		IRCBot_sendMessage(bot,target,STRINGCP(buffer,len));
+	else
+		IRCBot_sendMessage(bot,target,STRINGCP("Warning: No output from external command",40));
 
-	if(p2close(stream)!=0)
-		return true;
 
 	return false;
 }

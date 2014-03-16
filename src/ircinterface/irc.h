@@ -61,6 +61,7 @@ typedef struct irc_message{
  */
 typedef struct irc_connection{
 	int id;//Id of the connection, got from socket()
+	char* read_buffer;//Read buffer, used in irc_read_message
 }irc_connection;
 
 /**

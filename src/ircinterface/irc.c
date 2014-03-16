@@ -43,10 +43,14 @@ irc_connection irc_connect(const char* host,unsigned short port){
 
 	freeaddrinfo(result);
 
-	return (irc_connection){.id=id};
+	//Initiate read buffer
+	char* read_buffer = malloc(IRC_BUFFER_LENGTH+1);//TODO: Error checking for this, the connection and rewrite the irc_connect signature for returning bool and use a out parameter for irc_connection
+
+	return (irc_connection){.id = id,.read_buffer = read_buffer};
 }
 
 bool irc_disconnect(const irc_connection* connection){
+	free(connection->read_buffer);
 	return close(connection->id)>=0;
 }
 
@@ -222,20 +226,19 @@ void irc_parse_message(const irc_connection* connection,Stringcp raw_message,voi
 }
 
 bool irc_read_message(const irc_connection* connection,void(*onMessageFunc)(const irc_connection* connection,const irc_message* message)){
-	static char read_buffer[IRC_BUFFER_LENGTH+1];
-	static int read_len;
+	int read_len;
 
 	//If a message is sent from the server
-	if((read_len = read(connection->id,read_buffer,IRC_BUFFER_LENGTH))){
+	if((read_len = read(connection->id,connection->read_buffer,IRC_BUFFER_LENGTH))){
 		if(read_len<0){//Error checking
 			fprintf(stderr,"Error: read() returned negative value: %i\n",read_len);
 			return false;
 		}
 
 		//Print the raw message that was received
-		Stringp_put(STRINGP(read_buffer,read_len),stdout);
+		Stringp_put(STRINGP(connection->read_buffer,read_len),stdout);
 
-		irc_parse_message(connection,STRINGCP(read_buffer,read_len),onMessageFunc);
+		irc_parse_message(connection,STRINGCP(connection->read_buffer,read_len),onMessageFunc);
 
 		return true;
 	}
