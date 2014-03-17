@@ -5,55 +5,6 @@
 #include <lolie/TypeAliases.h>
 
 /**
- * Represents how an argument is splitted/separated from the next
- */
-enum CommandParameterSeparation{
-	//No separation. It means that it is the last argument
-	COMMAND_PARAMETER_SEPARATION_NONE,
-
-	//Default separation, usually with the blankspace character, but it can vary depending on various user settings
-	COMMAND_PARAMETER_SEPARATION_DEFAULT,
-
-	//Separate by a character
-	COMMAND_PARAMETER_SEPARATION_CHARACTER,
-
-	//Separate by a one of the list's character
-	COMMAND_PARAMETER_SEPARATION_CHARACTERLIST,
-
-	//Separate using a custom parser
-	COMMAND_PARAMETER_SEPARATION_CUSTOMPARSER
-};
-
-/**
- * Represents different types for the argument values.
- */
-enum CommandParameterType{
-	//Integer ([0-9]+)
-	COMMAND_PARAMETER_TYPE_INTEGER,
-
-	//String ([:print:])
-	COMMAND_PARAMETER_TYPE_STRING,
-
-	//Floating point number ([0-9]+(\.[0-9]+)?)
-	COMMAND_PARAMETER_TYPE_FLOATINGPOINT,
-
-	//Character (.)
-	COMMAND_PARAMETER_TYPE_CHARACTER,
-
-	//Boolean (true|on|1|yes | false|off|0|no)
-	COMMAND_PARAMETER_TYPE_BOOLEAN,
-
-	//Different values ([:graph:])
-	COMMAND_PARAMETER_TYPE_VALUES,
-
-	//Custom parser for parameter (.+)
-	COMMAND_PARAMETER_TYPE_CUSTOMPARSER,
-
-	//Free parsing. Passes all arguments as one string (.+)
-	COMMAND_PARAMETER_TYPE_FREE
-};
-
-/**
  * Represents the type of requirement this parameter has
  */
 enum CommandParameterRequirement{
@@ -67,42 +18,28 @@ enum CommandParameterRequirement{
 	COMMAND_PARAMETER_VARARG
 };
 
+struct CommandParameterType{
+	Stringp name;
+	Stringp description;
+	enum CommandParameterParserReturn{
+		COMMANDPARAMETERPARSER_SUCCESS,
+		COMMANDPARAMETERPARSER_PARSEERROR,
+	}(parser)(char* start,char** out_end);
+};
+
 struct CommandParameter{
 	Stringp name;
-	Stringp helpType;
-	enum CommandParameterType type;
-	union{
-		struct{
-			bool(*restrictFunc)(long value);
-		}integer;
-		
-		struct{
-			bool(*restrictFunc)(Stringcp value);
-		}string;
-
-		struct{
-			bool(*restrictFunc)(double value);
-		}floatingPoint;
-
-		struct{
-			bool(*restrictFunc)(uint value);
-		}character;
-
-		struct{
-			const char** list;
-		}values;
-
-		struct{
-			void*(*parse)(Stringcp arg);
-		}customParser;
-	}typeData;
+	Stringp description;
 	enum CommandParameterRequirement requirement;
-	enum CommandParameterSeparation separation;
-	union{
-		char character;
-		char* characterList;
-		//TODO: Custom parser
-	}separationData;
+
+	struct CommandParameterType type;
+	byte typeData[];
 };
+
+const struct CommandParameterType* CommandParameterType_int();
+const struct CommandParameterType* CommandParameterType_float();
+const struct CommandParameterType* CommandParameterType_bool();
+const struct CommandParameterType* CommandParameterType_values();
+const struct CommandParameterType* CommandParameterType_free();//TODO: Separation? How to implement?
 
 #endif
