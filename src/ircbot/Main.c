@@ -103,7 +103,7 @@ void onMessageFunc(const irc_connection* connection,const irc_message* message){
 		case IRC_MESSAGE_TYPE_PRIVMSG:
 			//If on a channel with a '#' prefix and the private message has the correct prefix
 			if(message->command.privmsg.target.ptr[0] == '#'){
-				if(message->command.privmsg.text.length==bot.commandPrefix.length || memcmp(message->command.privmsg.text.ptr,bot.commandPrefix.ptr,bot.commandPrefix.length)==0)
+				if(message->command.privmsg.text.length>bot.commandPrefix.length && memcmp(message->command.privmsg.text.ptr,bot.commandPrefix.ptr,bot.commandPrefix.length)==0)
 					IRCBot_performCommand(
 						&bot,
 						//Target is to the channel that the command was requested in

@@ -24,7 +24,7 @@ struct CommandParameterType{
 	enum CommandParameterParserReturn{
 		COMMANDPARAMETERPARSER_SUCCESS,
 		COMMANDPARAMETERPARSER_PARSEERROR,
-	}(parser)(char* start,char** out_end);
+	}(*parser)(char* start,char** out_end);
 };
 
 struct CommandParameter{

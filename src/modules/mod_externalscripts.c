@@ -54,16 +54,16 @@ bool plugin_onCommand(struct IRCBot* bot,Stringcp target,Stringcp command,union 
 	//Close program
 	int returnCode = p2close(stream);
 
-	//Check for error in program execution
-	if(returnCode!=0)
-		IRCBot_sendMessage(bot,target,STRINGCP("Error: External command did not return EXIT_SUCCESS",51));
-
 	//Send output message
 	if(len>1)
 		IRCBot_sendMessage(bot,target,STRINGCP(buffer,len));
-	else
-		IRCBot_sendMessage(bot,target,STRINGCP("Warning: No output from external command",40));
-
+	else{//There's no output
+		//Check for error in program execution
+		if(returnCode!=0)
+			IRCBot_sendMessage(bot,target,STRINGCP("Error: External command did not return EXIT_SUCCESS",51));
+		else
+			IRCBot_sendMessage(bot,target,STRINGCP("Warning: No output from external command",40));
+	}
 
 	return false;
 }
