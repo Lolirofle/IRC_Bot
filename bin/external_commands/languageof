@@ -1,0 +1,23 @@
+#!/usr/bin/python
+
+from apiclient.discovery import build
+from apiclient.errors import HttpError
+import sys
+
+def language_of(str):
+	with file(".googleapikey") as f:
+		service = build("translate","v2",developerKey=f.read())
+
+
+	print service.translations().list(
+		source='en',
+		target='sv',
+		q=['window','movie','screen']
+	).execute()
+
+
+if __name__ == "__main__":
+	try:
+		language_of(sys.stdin.read())
+	except HttpError, e:
+		print "An HTTP error %d occurred:\n%s" % (e.resp.status, e.content)

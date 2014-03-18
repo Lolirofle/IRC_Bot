@@ -17,6 +17,8 @@
 //TODO: "&&"" to combine commands and maybe `command` to insert a command with output as return value to an argument
 //TODO: Help pages for a list of commands and syntax, explanation, etc.
 //TODO: Command aliases
+//TODO: Commands: "to <channel/nickname> <command>"
+//TODO: Move most the stuff from Main.c to IRCBot.c and rename IRCBot.c to Toabot.c
 
 struct IRCBot bot;
 char* defaultChannel;

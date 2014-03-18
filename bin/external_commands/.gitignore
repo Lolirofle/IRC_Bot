@@ -2,5 +2,5 @@
 !*
 
 morse
-morse.o
-morse.hi
+*.o
+*.hi

@@ -1,0 +1,33 @@
+#!/usr/bin/python
+
+from apiclient.discovery import build
+from apiclient.errors import HttpError
+import sys
+
+def search(str):
+	with file(".googleapikey") as f:
+		service = build("customsearch","v1",developerKey=f.read())
+	result = service.cse().list(
+		q=str,
+		cx='003571043788866128936:ndb2on0dhp0',
+		num=1,
+		fields="items(title,link,snippet)",
+	).execute()
+	
+	if not result:
+		return None;
+
+	return result['items'][0]
+
+
+
+if __name__ == "__main__":
+	try:
+		result = search(sys.stdin.read())
+	except HttpError, e:
+		print "An HTTP error %d occurred:\n%s" % (e.resp.status, e.content)
+
+	if not result:
+		print "Not found"
+	else:
+		print result['link'] + ' ' + result['title'] + ' (' + result['snippet'] + ")";

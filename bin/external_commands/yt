@@ -1,0 +1,39 @@
+#!/usr/bin/python
+
+from apiclient.discovery import build
+from apiclient.errors import HttpError
+import sys
+
+def youtube_search(str):
+	with file(".googleapikey") as f:
+		youtube = build("youtube","v3",developerKey=f.read())
+
+	# Call the search.list method to retrieve results matching the specified query term.
+	results = youtube.search().list(
+		q=str,
+		part="id,snippet",
+		maxResults=1,
+		fields="items(id,kind,snippet)"
+	).execute()
+
+	items = results.get("items", [])
+
+	if items:
+		return items[0]
+	return None;
+
+if __name__ == "__main__":
+	try:
+		result = youtube_search(sys.stdin.read())
+	except HttpError, e:
+		print "An HTTP error %d occurred:\n%s" % (e.resp.status, e.content)
+
+	if result is None:
+		print "No results"
+	else:
+		if result["id"]["kind"] == "youtube#video":
+			print "http://www.youtube.com/watch?v=" + result["id"]["videoId"],result["snippet"]["title"].encode('utf8')
+		elif result["id"]["kind"] == "youtube#channel":
+			print "http://www.youtube.com/channel/" + result["id"]["channelId"],result["snippet"]["channelTitle"].encode('utf8'), "(" + result["snippet"]["title"].encode('utf8') + ")"
+		elif result["id"]["kind"] == "youtube#playlist":
+			print "http://www.youtube.com/playlist?list=" + result["id"]["playlistId"],result["snippet"]["title"].encode('utf8')
