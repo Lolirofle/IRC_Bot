@@ -20,10 +20,8 @@ struct Command{
 	bool(*func)(struct IRCBot* bot,Stringcp target,union CommandArgument* arg);
 
 	//Parameter data
-	struct{
-		unsigned int count;
-		struct CommandParameter* data;
-	}parameters;
+	unsigned int parameterCount;
+	struct CommandParameter parameters[];
 };
 
 #endif

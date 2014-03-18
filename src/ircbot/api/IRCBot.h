@@ -10,7 +10,7 @@
 struct irc_connection;
 
 #define IRCBOT_NAME    "Flygande Toalett Toabot"
-#define IRCBOT_VERSION "1.2.0"
+#define IRCBOT_VERSION "1.2.1"
 
 extern const Stringcp IRCBot_signature;
 

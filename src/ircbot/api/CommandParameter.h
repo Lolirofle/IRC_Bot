@@ -8,13 +8,21 @@
  * Represents the type of requirement this parameter has
  */
 enum CommandParameterRequirement{
-	//The parameter is required
+	/**
+	 * The parameter is required
+	 */
 	COMMAND_PARAMETER_REQUIRED,
 
-	//The parameter is optional. This option must be after all the required ones.
+	/**
+	 * The parameter is optional. This option must be after all the required ones.
+	 */
 	COMMAND_PARAMETER_OPTIONAL,
 
-	//The parameter is a variable length argument. It means that it is separated and can handle the rest of the arguments. This option must be the last.
+	/**
+	 * The parameter is a variable length argument.
+	 * It means that it is separated and can handle the rest of the arguments.
+	 * This option can be anywhere, if it makes contact with an invalid value, it will jump to the next argument.
+	 */
 	COMMAND_PARAMETER_VARARG
 };
 
@@ -32,14 +40,16 @@ struct CommandParameter{
 	Stringp description;
 	enum CommandParameterRequirement requirement;
 
-	struct CommandParameterType type;
+	const struct CommandParameterType* type;
 	byte typeData[];
 };
 
-const struct CommandParameterType* CommandParameterType_int();
-const struct CommandParameterType* CommandParameterType_float();
-const struct CommandParameterType* CommandParameterType_bool();
-const struct CommandParameterType* CommandParameterType_values();
-const struct CommandParameterType* CommandParameterType_free();//TODO: Separation? How to implement?
+typedef const struct CommandParameterType*(*CommandParameterTypeParser)(const struct CommandParameterType* type,void* typeData,const char** parserPos);
+
+extern const struct CommandParameterType CommandParameterType_int;
+extern const struct CommandParameterType CommandParameterType_float;
+extern const struct CommandParameterType CommandParameterType_bool;
+extern const struct CommandParameterType CommandParameterType_values;
+extern const struct CommandParameterType CommandParameterType_free;
 
 #endif
