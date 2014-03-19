@@ -82,9 +82,9 @@ struct PipedStream p2open(char* path,char* const argv[]){
 			if(inPipe[1]>=0 && outPipe[0]>=0){
 				FILE* in,
 					* out;
-				if(!(in=fdopen(inPipe[1],"w")))
+				if(!(in=fdopen(inPipe[1],"wb")))
 					close(inPipe[1]);
-				if(!(out=fdopen(outPipe[0],"r")))
+				if(!(out=fdopen(outPipe[0],"rb")))
 					close(outPipe[0]);
 
 				return (struct PipedStream){
@@ -101,13 +101,18 @@ int p2close(struct PipedStream stream){
     int status;
 	pid_t pid;
 
+	//Wait for child process. If it's interrupted, try again
 	do{
 		pid=waitpid(stream.pid,&status,0);
 	}while(pid==-1 && errno==EINTR);
 
+	//If the process ended normally
 	if(WIFEXITED(status)){
+		//Return its exit code
 		return WEXITSTATUS(status);
 	}
+
+	//Return -1 when it hasn't ended normally
     return -1;
 }
 
@@ -117,20 +122,31 @@ extern void p2flushRead(struct PipedStream stream);
 /*
 //Testing
 int main(void){
-	char* argv[]={"rev",NULL};
-	struct PipedStream stream=p2open("/usr/bin/rev",argv);
+	char* argv[]={"morse",NULL};
+	struct PipedStream stream=p2open("../../bin/external_commands/yt",argv);
 
-	fprintf(stream.in,"The shit");
+	char input[] = "åäö";
+	char output[512];
+
+	//Write
+	fputs(input,stream.in);
 	p2flushWrite(stream);
 
-	fputs("Received: \"",stdout);
-	int c;while((c=fgetc(stream.out))!=EOF)
-		putchar(c);
-	putchar('"');
-	putchar('\n');
+	printf("Sent: %s\n",input);
+
+	//Read
+	//fputs("Received: \"",stdout);
+	//int c;while((c=fgetc(stream.out))!=EOF)
+	//	putchar(c);
+	//putchar('"');
+	//putchar('\n');
+	
+	size_t len=fread(output,sizeof(char),512,stream.out);
+	printf("Received: %.*s\n",(int)len,output);
+
 	p2flushRead(stream);
 
-	p2close(stream);
+	printf("Exit code: %i\n",p2close(stream));
 
 	return 0;
 }

@@ -248,15 +248,8 @@ bool irc_read_message(const irc_connection* connection,void(*onMessageFunc)(cons
 	return false;
 }
 
-size_t irc_read(const irc_connection* connection,Stringp out){
-	int read_len=read(connection->id,out.ptr,out.length);
-
-	//If a message is sent from the server
-	if(read_len<=0){
-		fprintf(stderr,"Error: read() returned errorneous value: %i\n",read_len);
-		return 0;
-	}
-	return read_len;
+ssize_t irc_read(const irc_connection* connection,Stringp out){
+	return read(connection->id,out.ptr,out.length);
 }
 
 extern inline void irc_set_nickname(const irc_connection* connection,const char* name);

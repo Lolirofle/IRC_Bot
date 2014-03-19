@@ -19,6 +19,7 @@
 //TODO: Command aliases
 //TODO: Commands: "to <channel/nickname> <command>"
 //TODO: Move most the stuff from Main.c to IRCBot.c and rename IRCBot.c to Toabot.c
+//TODO: Avoid "static" variables that resides in functions or in the global scope because it makes data races possible.
 
 struct IRCBot bot;
 char* defaultChannel;

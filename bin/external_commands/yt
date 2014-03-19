@@ -3,6 +3,7 @@
 from apiclient.discovery import build
 from apiclient.errors import HttpError
 import sys
+import codecs
 
 def youtube_search(str):
 	with file(".googleapikey") as f:
@@ -24,6 +25,7 @@ def youtube_search(str):
 
 if __name__ == "__main__":
 	try:
+		sys.stdin = codecs.getreader("utf-8")(sys.stdin)
 		result = youtube_search(sys.stdin.read())
 	except HttpError, e:
 		print "An HTTP error %d occurred:\n%s" % (e.resp.status, e.content)

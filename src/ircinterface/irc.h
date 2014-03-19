@@ -152,7 +152,11 @@ void irc_send_message(const irc_connection* connection,Stringcp target,Stringcp 
 
 bool irc_read_message(const irc_connection* connection,void(*onMessageFunc)(const irc_connection* connection,const irc_message* message));
 
-size_t irc_read(const irc_connection* connection,Stringp out);
+/**
+ * Read data from the IRC connection and copy it to `out` string.
+ * Behaves like the POSIX function `ssize_t read(int,void*,size_t)`
+ */
+ssize_t irc_read(const irc_connection* connection,Stringp out);
 
 bool irc_disconnect(const irc_connection* connection);
 

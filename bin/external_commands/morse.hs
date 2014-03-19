@@ -1,4 +1,4 @@
--- import Data.String.UTF8
+import qualified System.IO.UTF8 as UTF8.IO
 import Data.Char
 import Data.List
 

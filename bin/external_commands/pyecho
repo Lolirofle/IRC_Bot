@@ -1,8 +1,10 @@
 #!/usr/bin/python
 
 import sys
+import codecs
 
 if __name__ == '__main__':
+	sys.stdin = codecs.getreader("utf-8")(sys.stdin)
 	args=sys.stdin.read()
 
 	print args

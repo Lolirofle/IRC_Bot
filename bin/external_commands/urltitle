@@ -3,8 +3,10 @@
 import sys
 from BeautifulSoup import BeautifulSoup
 import urllib2
+import codecs
 
 if __name__ == '__main__':
+	sys.stdin = codecs.getreader("utf-8")(sys.stdin)
 	args=sys.stdin.read()
 
 	print BeautifulSoup(urllib2.urlopen(args).read())('title')

@@ -1,2 +1,3 @@
 #!/bin/sh
-octave -q -f --no-init-file --no-line-editing --no-site-file --no-window-system
+#timeout 2.0s octave -q -f --no-init-file --no-line-editing --no-site-file --no-window-system --no-history
+timeout 2.0s concalc

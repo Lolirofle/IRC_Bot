@@ -2,7 +2,9 @@
 
 import sys
 import requests
+import codecs
 
+sys.stdin = codecs.getreader("utf-8")(sys.stdin)
 args=sys.stdin.read()
 
 var = requests.get(r'http://www.google.com/search?q="'+args+'"&btnI',allow_redirects='false')
