@@ -79,160 +79,164 @@ void irc_send_message(const irc_connection* connection,Stringcp target,Stringcp 
 	irc_send_raw(connection,write_buffer,len);
 }
 
-void irc_parse_message(const irc_connection* connection,Stringcp raw_message,void(*onMessageFunc)(const irc_connection* connection,const irc_message* message)){
-	//If standard message prefix
-	if(raw_message.ptr[0] == ':'){
-		irc_message message;
-		message.raw_message = raw_message;
+Stringcp irc_parse_message(const irc_connection* connection,Stringcp raw_message,irc_message* out){
+	const char* read_ptr       = raw_message.ptr,
+	          * read_ptr_begin = read_ptr,
+	          *const read_ptr_end = raw_message.ptr + raw_message.length;
 
-		char* read_ptr       = raw_message.ptr+1,
-		    * read_ptr_begin = read_ptr,
-		    * read_ptr_end   = raw_message.ptr+raw_message.length;
+	//Initialize initial fields
+	out->raw_message = raw_message;
+	out->prefix_type = IRC_MESSAGE_PREFIX_UNDETERMINED;
+	out->command_type_type = IRC_MESSAGE_COMMAND_TYPE_TYPE_UNDETERMINED;
+
+	//Begin parsing
+	//It parses from left to right, convenient for getting what type of message it is but hard for determining the prefix.
+
+	//If the message has a prefix
+	if(raw_message.ptr[0] == ':'){
+		++read_ptr;
 
 		//Prefix
-		message.prefix_type = IRC_MESSAGE_PREFIX_UNKNOWN;
-		while(true){
-			if(read_ptr>=read_ptr_end)
-				return;
-			if(read_ptr[0] == '\r' && read_ptr[1] == '\n')
-				goto TermNewCommand;
+		loop{
+			if(read_ptr>=read_ptr_end || (read_ptr[0] == '\r' && read_ptr[1] == '\n'))
+				goto ParseTerminateCRLF;
 
-			if(*read_ptr == ' '){//If end of prefix
-				if(message.prefix_type == IRC_MESSAGE_PREFIX_USER){//If already determined it is a user message, then it is a hostname
-					message.prefix.user.host = STRINGP(read_ptr_begin,read_ptr-read_ptr_begin);
-					read_ptr_begin = ++read_ptr;
-				}else if(message.prefix_type == IRC_MESSAGE_PREFIX_UNKNOWN){//If not yet determined, then it is a servername
-					message.prefix.server.name = STRINGP(read_ptr_begin,read_ptr-read_ptr_begin);
-					message.prefix_type = IRC_MESSAGE_PREFIX_SERVER;
-					read_ptr_begin = ++read_ptr;
-				}
-				break;
-			}
+			//If the prefix type hasn't been determined to be in any format and a '!' or '@' is found
+			switch(read_ptr[0]){
+				case ' ':
+					//If the prefix hasn't been determined to be in any format and it is the end
+					if(out->prefix_type == IRC_MESSAGE_PREFIX_UNDETERMINED){
+						//It is the server name (The string from read_ptr_begin to read_ptr)
+						out->prefix_type = IRC_MESSAGE_PREFIX_SERVER;
+						out->prefix.server.name = STRINGCP(read_ptr_begin,read_ptr-read_ptr_begin);
+						read_ptr_begin = ++read_ptr;
 
-			if(message.prefix_type == IRC_MESSAGE_PREFIX_USER && *read_ptr == '@'){//If already found '!' and finds '@', then it is a username
-				message.prefix.user.username = STRINGP(read_ptr_begin,read_ptr-read_ptr_begin);
-				read_ptr_begin = ++read_ptr;
-			}
-			else if(*read_ptr == '!'){//If separated by '!', then it is a nickname
-				message.prefix.user.nickname = STRINGP(read_ptr_begin,read_ptr-read_ptr_begin);
-				message.prefix_type = IRC_MESSAGE_PREFIX_USER;
-				read_ptr_begin = ++read_ptr;
-			}
+						break;
+					}
+				case '@':
+				case '!':
+					if(out->prefix_type == IRC_MESSAGE_PREFIX_UNDETERMINED){
+						//It is a nickname parameter (The string from read_ptr_begin to read_ptr)
+						out->prefix.user.nickname = STRINGCP(read_ptr_begin,read_ptr-read_ptr_begin);
+						out->prefix_type = IRC_MESSAGE_PREFIX_USER;
+						read_ptr_begin = ++read_ptr;
+					}
+					//If the prefix type has been determined to be in the user format
+					else if(out->prefix_type == IRC_MESSAGE_PREFIX_USER){
+						//Lookup the beginning and determine by that
+						switch(read_ptr_begin[-1]){
+							case '@':
+								out->prefix.user.host = STRINGCP(read_ptr_begin,read_ptr-read_ptr_begin);
+								break;
 
-			++read_ptr;
-		}
-
-		//Command
-		message.command_type = IRC_MESSAGE_TYPE_UNKNOWN;
-		while(true){
-			if(read_ptr>=read_ptr_end)
-				return;
-			if(read_ptr[0] == '\r' && read_ptr[1] == '\n')
-				goto TermNewCommand;
-
-			if(*read_ptr == ' '){//If end of command
-				switch(read_ptr-read_ptr_begin){
-					case 3:
-						if(read_ptr_begin[0]>='0' && read_ptr_begin[0]<='9' &&
-						   read_ptr_begin[1]>='0' && read_ptr_begin[1]<='9' &&
-						   read_ptr_begin[2]>='0' && read_ptr_begin[2]<='9'){
-							message.command_type = IRC_MESSAGE_TYPE_NUMBER;
-							message.command_type_number = atoi((char[4]){read_ptr_begin[0],read_ptr_begin[1],read_ptr_begin[2],'\0'});
+							case '!':
+								out->prefix.user.username = STRINGCP(read_ptr_begin,read_ptr-read_ptr_begin);
+								break;
 						}
-						break;
-					case 4:
-						if(memeq(read_ptr_begin,"JOIN",4)){
-							message.command_type = IRC_MESSAGE_TYPE_JOIN;
-							message.command.channels=NULL;
-						}else if(memeq(read_ptr_begin,"PART",4)){
-							message.command_type = IRC_MESSAGE_TYPE_PART;
-							message.command.channels=NULL;
-						}else if(memeq(read_ptr_begin,"NICK",4))
-							message.command_type = IRC_MESSAGE_TYPE_NICK;
-						else if(memeq(read_ptr_begin,"KICK",4))
-							message.command_type = IRC_MESSAGE_TYPE_KICK;
-						break;
-					case 5:
-						if(memeq(read_ptr_begin,"TOPIC",5))
-							message.command_type = IRC_MESSAGE_TYPE_TOPIC;
-						break;
-					case 6:
-						if(memeq(read_ptr_begin,"NOTICE",6))
-							message.command_type = IRC_MESSAGE_TYPE_NOTICE;
-						break;
-					case 7:
-						if(memeq(read_ptr_begin,"PRIVMSG",7))
-							message.command_type = IRC_MESSAGE_TYPE_PRIVMSG;
-						break;
-				}
+						read_ptr_begin = ++read_ptr;
+					}
+					break;
+			}
+
+			//If ' ', then it is end of prefix
+			if(read_ptr[0] == ' '){
+				++read_ptr;
+				break;
+			}
+
+			++read_ptr;
+		}
+	}else
+		out->prefix_type = IRC_MESSAGE_PREFIX_NONE;
+
+	//Command
+	loop{
+		if(read_ptr>=read_ptr_end || (read_ptr[0] == '\r' && read_ptr[1] == '\n'))
+			goto ParseTerminateCRLF;
+
+		//If end of command
+		if(read_ptr[0] == ' '){
+			out->command_type_type = IRC_MESSAGE_COMMAND_TYPE_TYPE_ENUMERATOR;
+			switch(read_ptr-read_ptr_begin){
+				case 3:
+					if(read_ptr_begin[0]>='0' && read_ptr_begin[0]<='9' &&
+					   read_ptr_begin[1]>='0' && read_ptr_begin[1]<='9' &&
+					   read_ptr_begin[2]>='0' && read_ptr_begin[2]<='9'){
+						out->command_type_type = IRC_MESSAGE_COMMAND_TYPE_TYPE_NUMBER;
+						out->command_type.number = atoi((char[4]){read_ptr_begin[0],read_ptr_begin[1],read_ptr_begin[2],'\0'});
+						goto FoundMessageTypeType;
+					}
+					break;
+				case 4:
+					if(memeq(read_ptr_begin,"JOIN",4)){
+						out->command_type.enumerator = IRC_MESSAGE_COMMAND_TYPE_JOIN;
+						out->command.join.channels=NULL;
+						goto FoundMessageTypeType;
+					}else if(memeq(read_ptr_begin,"PART",4)){
+						out->command_type.enumerator = IRC_MESSAGE_COMMAND_TYPE_PART;
+						out->command.part.channels=NULL;
+						goto FoundMessageTypeType;
+					}else if(memeq(read_ptr_begin,"PING",4)){
+						out->command_type.enumerator = IRC_MESSAGE_COMMAND_TYPE_PING;
+						goto FoundMessageTypeType;
+					}else if(memeq(read_ptr_begin,"PONG",4)){
+						out->command_type.enumerator = IRC_MESSAGE_COMMAND_TYPE_PONG;
+						goto FoundMessageTypeType;
+					}else if(memeq(read_ptr_begin,"NICK",4)){
+						out->command_type.enumerator = IRC_MESSAGE_COMMAND_TYPE_NICK;
+						goto FoundMessageTypeType;
+					}else if(memeq(read_ptr_begin,"KICK",4)){
+						out->command_type.enumerator = IRC_MESSAGE_COMMAND_TYPE_KICK;
+						out->command.kick.channels=NULL;
+						out->command.kick.users=NULL;
+						goto FoundMessageTypeType;
+					}
+					break;
+				case 5:
+					if(memeq(read_ptr_begin,"TOPIC",5)){
+						out->command_type.enumerator = IRC_MESSAGE_COMMAND_TYPE_TOPIC;
+						goto FoundMessageTypeType;
+					}
+					break;
+				case 6:
+					if(memeq(read_ptr_begin,"NOTICE",6)){
+						out->command_type.enumerator = IRC_MESSAGE_COMMAND_TYPE_NOTICE;
+						goto FoundMessageTypeType;
+					}
+					break;
+				case 7:
+					if(memeq(read_ptr_begin,"PRIVMSG",7)){
+						out->command_type.enumerator = IRC_MESSAGE_COMMAND_TYPE_PRIVMSG;
+						goto FoundMessageTypeType;
+					}
+					break;
+			}
+			out->command_type_type = IRC_MESSAGE_COMMAND_TYPE_TYPE_UNKNOWN;
+			out->command_type.unknown = STRINGCP(read_ptr_begin,read_ptr-read_ptr_begin);
+
+			FoundMessageTypeType:
 				read_ptr_begin = ++read_ptr;
 				break;
-			}
-
-			++read_ptr;
 		}
 
-		//Params
-		bool repeat=false;
-		unsigned char paramCount=0;
-		while(true){//TODO: Implement all the other message command types and not only privmsg
-			if((repeat=(read_ptr[0] == '\r' && read_ptr[1] == '\n')) || read_ptr>=read_ptr_end){
-				if(paramCount==1){
-					switch(message.command_type){
-						case IRC_MESSAGE_TYPE_PRIVMSG:
-							message.command.privmsg.text = STRINGP(read_ptr_begin,read_ptr-read_ptr_begin);
-							break;
-					}
-				}
-				break;
-			}
-			
-			if(paramCount==0){
-				if(read_ptr[0] == ' '){
-					switch(message.command_type){
-						case IRC_MESSAGE_TYPE_PRIVMSG:
-							message.command.privmsg.target = STRINGP(read_ptr_begin,read_ptr-read_ptr_begin);
-							break;
-						case IRC_MESSAGE_TYPE_JOIN:{
-							Stringp* tmp = smalloc(sizeof(Stringp*));
-							*tmp = STRINGP(read_ptr_begin,read_ptr-read_ptr_begin);
-							LinkedList_push(&message.command.channels,tmp);
-						}	break;
-					}
-					if(*++read_ptr == ':')
-						++read_ptr;
-					read_ptr_begin = read_ptr;
-					++paramCount;
-				}
-			}
-			++read_ptr;
-		}
-
-		if(onMessageFunc!=NULL){
-			message.raw_message.length=read_ptr+2-message.raw_message.ptr;
-			onMessageFunc(connection,&message);
-		}
-		if(repeat){
-			TermNewCommand:
-			return irc_parse_message(connection,STRINGCP(read_ptr+2,raw_message.length-(read_ptr+2-raw_message.ptr)),onMessageFunc);
-		}
-		else
-			return;
+		++read_ptr;
 	}
-	//Else if it is a ping request 
-	else if(memeq(raw_message.ptr,"PING",4)){
-		char tmp[raw_message.length];
-		memcpy(tmp,raw_message.ptr,raw_message.length);
-		tmp[1]='O';
-		irc_send_raw(connection,tmp,raw_message.length);//Send
-	}
+
+	//TODO: Parse params
+
+	ParseTerminate:
+		return STRINGCP(read_ptr,raw_message.length-(read_ptr-raw_message.ptr));
+
+	ParseTerminateCRLF:
+		read_ptr+=2;
+		goto ParseTerminate;
 }
 
 bool irc_read_message(const irc_connection* connection,void(*onMessageFunc)(const irc_connection* connection,const irc_message* message)){
-	int read_len;
+	ssize_t read_len;
 
 	//If a message is sent from the server
-	if((read_len = read(connection->id,connection->read_buffer,IRC_BUFFER_LENGTH))){
+	if((read_len = irc_read(connection,STRINGP(connection->read_buffer,IRC_BUFFER_LENGTH)))){
 		if(read_len<0){//Error checking
 			fprintf(stderr,"Error: read() returned negative value: %i\n",read_len);
 			return false;
@@ -241,7 +245,12 @@ bool irc_read_message(const irc_connection* connection,void(*onMessageFunc)(cons
 		//Print the raw message that was received
 		Stringp_put(STRINGP(connection->read_buffer,read_len),stdout);
 
-		irc_parse_message(connection,STRINGCP(connection->read_buffer,read_len),onMessageFunc);
+		irc_message message;
+		Stringcp read_string = STRINGCP(connection->read_buffer,read_len);
+		do{
+			irc_parse_message(connection,read_string,&message);
+			onMessageFunc(connection,&message);
+		}while(read_string.length>0);
 
 		return true;
 	}
