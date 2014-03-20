@@ -68,13 +68,12 @@ void onMessageFunc(const irc_connection* connection,const irc_message* message){
 			return;
 	}
 
-	switch(message->command_type){
-		case IRC_MESSAGE_TYPE_NUMBER:
-			switch(message->command_type_number){
-				case 1:
+	switch(message->command_type_type){
+		case IRC_MESSAGE_COMMAND_TYPE_TYPE_NUMBER:
+			switch(message->command_type.number){
+				case IRC_MESSAGE_TYPENO_RPL_WELCOME:
 					if(connection->initial_channel)
 						IRCBot_joinChannel(&bot,STRINGCP(connection->initial_channel,strlen(connection->initial_channel)));
-					//IRCBot_joinChannel(&bot,STRINGCP("#toa",4));
 					break;
 				case IRC_MESSAGE_TYPENO_ERR_NONICKNAMEGIVEN:
 				case IRC_MESSAGE_TYPENO_ERR_ERRONEUSNICKNAME:
@@ -103,32 +102,43 @@ void onMessageFunc(const irc_connection* connection,const irc_message* message){
 			}
 
 			break;
-		case IRC_MESSAGE_TYPE_PRIVMSG:
-			//If on a channel with a '#' prefix and the private message has the correct prefix
-			if(message->command.privmsg.target.ptr[0] == '#'){
-				if(message->command.privmsg.text.length>bot.commandPrefix.length && memcmp(message->command.privmsg.text.ptr,bot.commandPrefix.ptr,bot.commandPrefix.length)==0)
-					IRCBot_performCommand(
-						&bot,
-						//Target is to the channel that the command was requested in
-						STRINGP_CONST(message->command.privmsg.target),
-						//Command begins after the command prefix
-						message->command.privmsg.text.ptr + bot.commandPrefix.length,
-						//Command ends at the same position (end of the message)
-						message->command.privmsg.text.ptr + message->command.privmsg.text.length
-					);
-			}
 
-			//If private message
-			else if(message->command.privmsg.target.length == bot.nickname.length && memcmp(message->command.privmsg.target.ptr,bot.nickname.ptr,bot.nickname.length)==0)
-				IRCBot_performCommand(
-					&bot,
-					//Target is the nickname that sent the command
-					STRINGP_CONST(message->prefix.user.nickname),
-					//Command begins at the beginning of the message
-					message->command.privmsg.text.ptr,
-					//Command ends at the end of the message
-					message->command.privmsg.text.ptr + message->command.privmsg.text.length
-				);
+		case IRC_MESSAGE_COMMAND_TYPE_TYPE_ENUMERATOR:
+			switch(message->command_type.enumerator){
+				case IRC_MESSAGE_COMMAND_TYPE_PRIVMSG:
+					//If on a channel with a '#' prefix and the private message has the correct prefix
+					if(message->command.privmsg.target.ptr[0] == '#'){
+						if(message->command.privmsg.text.length>bot.commandPrefix.length && memcmp(message->command.privmsg.text.ptr,bot.commandPrefix.ptr,bot.commandPrefix.length)==0)
+							IRCBot_performCommand(
+								&bot,
+								//Target is to the channel that the command was requested in
+								STRINGP_CONST(message->command.privmsg.target),
+								//Command begins after the command prefix
+								message->command.privmsg.text.ptr + bot.commandPrefix.length,
+								//Command ends at the same position (end of the message)
+								message->command.privmsg.text.ptr + message->command.privmsg.text.length
+							);
+					}
+
+					//If private message
+					else if(message->command.privmsg.target.length == bot.nickname.length && memcmp(message->command.privmsg.target.ptr,bot.nickname.ptr,bot.nickname.length)==0)
+						IRCBot_performCommand(
+							&bot,
+							//Target is the nickname that sent the command
+							STRINGP_CONST(message->prefix.user.nickname),
+							//Command begins at the beginning of the message
+							message->command.privmsg.text.ptr,
+							//Command ends at the end of the message
+							message->command.privmsg.text.ptr + message->command.privmsg.text.length
+						);
+					break;
+
+				default:
+					break;
+			}
+			break;
+
+		default:
 			break;
 	}
 }

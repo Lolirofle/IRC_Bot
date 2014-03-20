@@ -70,11 +70,11 @@ void irc_send_message(const irc_connection* connection,Stringcp target,Stringcp 
 	char write_buffer[message.length+target.length+12];
 
 	int len = Stringp_vcopy(STRINGP(write_buffer,IRC_BUFFER_LENGTH),5,
-		STRINGP("PRIVMSG ",8),
+		STRINGCP("PRIVMSG ",8),
 		target,
-		STRINGP(" :",2),
+		STRINGCP(" :",2),
 		message,
-		STRINGP("\r\n",2)
+		STRINGCP("\r\n",2)
 	);
 	irc_send_raw(connection,write_buffer,len);
 }
@@ -94,16 +94,21 @@ Stringcp irc_parse_message(const irc_connection* connection,Stringcp raw_message
 
 	//If the message has a prefix
 	if(raw_message.ptr[0] == ':'){
-		++read_ptr;
+		read_ptr_begin = ++read_ptr;
 
 		//Prefix
-		loop{
-			if(read_ptr>=read_ptr_end || (read_ptr[0] == '\r' && read_ptr[1] == '\n'))
+		for(bool continueLoop=true;continueLoop;){
+			//If at end of message
+			if(read_ptr>=read_ptr_end)
+				goto ParseTerminate;
+			if(read_ptr[0] == '\r' && read_ptr[1] == '\n')
 				goto ParseTerminateCRLF;
 
 			//If the prefix type hasn't been determined to be in any format and a '!' or '@' is found
 			switch(read_ptr[0]){
 				case ' ':
+					continueLoop = false;
+
 					//If the prefix hasn't been determined to be in any format and it is the end
 					if(out->prefix_type == IRC_MESSAGE_PREFIX_UNDETERMINED){
 						//It is the server name (The string from read_ptr_begin to read_ptr)
@@ -128,34 +133,41 @@ Stringcp irc_parse_message(const irc_connection* connection,Stringcp raw_message
 							case '@':
 								out->prefix.user.host = STRINGCP(read_ptr_begin,read_ptr-read_ptr_begin);
 								break;
-
 							case '!':
 								out->prefix.user.username = STRINGCP(read_ptr_begin,read_ptr-read_ptr_begin);
+								break;
+							default:
 								break;
 						}
 						read_ptr_begin = ++read_ptr;
 					}
 					break;
+				default:
+					++read_ptr;
+					break;
 			}
-
-			//If ' ', then it is end of prefix
-			if(read_ptr[0] == ' '){
-				++read_ptr;
-				break;
-			}
-
-			++read_ptr;
 		}
 	}else
 		out->prefix_type = IRC_MESSAGE_PREFIX_NONE;
 
+	//Prepare termination variable that should be toggled when at end of message
+	enum{
+		IRC_PARSE_TERMINATE_NOT,
+		IRC_PARSE_TERMINATE_EOF,
+		IRC_PARSE_TERMINATE_CRLF,
+	}terminate = IRC_PARSE_TERMINATE_NOT;
+
 	//Command
+	read_ptr_begin = read_ptr;//TODO: IS this neccessary?
 	loop{
-		if(read_ptr>=read_ptr_end || (read_ptr[0] == '\r' && read_ptr[1] == '\n'))
-			goto ParseTerminateCRLF;
+		//If at end of message
+		if(read_ptr>=read_ptr_end)
+			terminate = IRC_PARSE_TERMINATE_EOF;
+		else if(read_ptr[0] == '\r' && read_ptr[1] == '\n')
+			terminate = IRC_PARSE_TERMINATE_CRLF;
 
 		//If end of command
-		if(read_ptr[0] == ' '){
+		if(read_ptr[0] == ' ' || terminate!=IRC_PARSE_TERMINATE_NOT){
 			out->command_type_type = IRC_MESSAGE_COMMAND_TYPE_TYPE_ENUMERATOR;
 			switch(read_ptr-read_ptr_begin){
 				case 3:
@@ -163,7 +175,7 @@ Stringcp irc_parse_message(const irc_connection* connection,Stringcp raw_message
 					   read_ptr_begin[1]>='0' && read_ptr_begin[1]<='9' &&
 					   read_ptr_begin[2]>='0' && read_ptr_begin[2]<='9'){
 						out->command_type_type = IRC_MESSAGE_COMMAND_TYPE_TYPE_NUMBER;
-						out->command_type.number = atoi((char[4]){read_ptr_begin[0],read_ptr_begin[1],read_ptr_begin[2],'\0'});
+						out->command_type.number = (read_ptr_begin[0]-'0')*100 + (read_ptr_begin[1]-'0')*10 + (read_ptr_begin[2]-'0')*1;
 						goto FoundMessageTypeType;
 					}
 					break;
@@ -175,6 +187,7 @@ Stringcp irc_parse_message(const irc_connection* connection,Stringcp raw_message
 					}else if(memeq(read_ptr_begin,"PART",4)){
 						out->command_type.enumerator = IRC_MESSAGE_COMMAND_TYPE_PART;
 						out->command.part.channels=NULL;
+						out->command.part.message=Stringcp_init;
 						goto FoundMessageTypeType;
 					}else if(memeq(read_ptr_begin,"PING",4)){
 						out->command_type.enumerator = IRC_MESSAGE_COMMAND_TYPE_PING;
@@ -190,11 +203,35 @@ Stringcp irc_parse_message(const irc_connection* connection,Stringcp raw_message
 						out->command.kick.channels=NULL;
 						out->command.kick.users=NULL;
 						goto FoundMessageTypeType;
+					}else if(memeq(read_ptr_begin,"QUIT",4)){
+						out->command_type.enumerator = IRC_MESSAGE_COMMAND_TYPE_QUIT;
+						goto FoundMessageTypeType;
+					}else if(memeq(read_ptr_begin,"MODE",4)){
+						out->command_type.enumerator = IRC_MESSAGE_COMMAND_TYPE_MODE;
+						goto FoundMessageTypeType;
+					}else if(memeq(read_ptr_begin,"KILL",4)){
+						out->command_type.enumerator = IRC_MESSAGE_COMMAND_TYPE_KILL;
+						goto FoundMessageTypeType;
+					}else if(memeq(read_ptr_begin,"PING",4)){
+						out->command_type.enumerator = IRC_MESSAGE_COMMAND_TYPE_PING;
+						goto FoundMessageTypeType;
+					}else if(memeq(read_ptr_begin,"PONG",4)){
+						out->command_type.enumerator = IRC_MESSAGE_COMMAND_TYPE_PONG;
+						goto FoundMessageTypeType;
+					}else if(memeq(read_ptr_begin,"AWAY",4)){
+						out->command_type.enumerator = IRC_MESSAGE_COMMAND_TYPE_AWAY;
+						goto FoundMessageTypeType;
 					}
 					break;
 				case 5:
 					if(memeq(read_ptr_begin,"TOPIC",5)){
 						out->command_type.enumerator = IRC_MESSAGE_COMMAND_TYPE_TOPIC;
+						goto FoundMessageTypeType;
+					}else if(memeq(read_ptr_begin,"SQUIT",5)){
+						out->command_type.enumerator = IRC_MESSAGE_COMMAND_TYPE_SQUIT;
+						goto FoundMessageTypeType;
+					}else if(memeq(read_ptr_begin,"ERROR",5)){
+						out->command_type.enumerator = IRC_MESSAGE_COMMAND_TYPE_ERROR;
 						goto FoundMessageTypeType;
 					}
 					break;
@@ -210,19 +247,89 @@ Stringcp irc_parse_message(const irc_connection* connection,Stringcp raw_message
 						goto FoundMessageTypeType;
 					}
 					break;
+				default:
+					break;
 			}
 			out->command_type_type = IRC_MESSAGE_COMMAND_TYPE_TYPE_UNKNOWN;
 			out->command_type.unknown = STRINGCP(read_ptr_begin,read_ptr-read_ptr_begin);
 
 			FoundMessageTypeType:
 				read_ptr_begin = ++read_ptr;
+
+				switch(terminate){
+					case IRC_PARSE_TERMINATE_NOT:
+						break;
+					case IRC_PARSE_TERMINATE_EOF:
+						goto ParseTerminate;
+					case IRC_PARSE_TERMINATE_CRLF:
+						goto ParseTerminateCRLF;
+				}
 				break;
 		}
 
 		++read_ptr;
 	}
 
-	//TODO: Parse params
+	//Params
+	byte paramsCount = 0;
+	bool trailing = false;
+	read_ptr_begin = read_ptr;//TODO: Is this neccessary?
+	loop{
+		//If at end of message
+		if(read_ptr>=read_ptr_end)
+			terminate = IRC_PARSE_TERMINATE_EOF;
+		else{
+			if(read_ptr[0] == '\r' && read_ptr[1] == '\n')
+				terminate = IRC_PARSE_TERMINATE_CRLF;
+			//Param trailing
+			else if(read_ptr[0] == ':'){
+				read_ptr_begin = ++read_ptr;
+				trailing = true;
+			}
+		}
+
+		//If end of param
+		if(terminate!=IRC_PARSE_TERMINATE_NOT || (!trailing && read_ptr[0] == ' ')){
+			switch(out->command_type_type){
+				case IRC_MESSAGE_COMMAND_TYPE_TYPE_ENUMERATOR:
+					switch(out->command_type.enumerator){
+						case IRC_MESSAGE_COMMAND_TYPE_PRIVMSG:
+							switch(paramsCount){
+								case 0:
+									out->command.privmsg.target = STRINGCP(read_ptr_begin,read_ptr-read_ptr_begin);
+									break;
+								case 1:
+									out->command.privmsg.text = STRINGCP(read_ptr_begin,read_ptr-read_ptr_begin);
+									break;
+							}
+							break;
+						default:
+							break;
+					}
+					break;
+
+				case IRC_MESSAGE_COMMAND_TYPE_TYPE_NUMBER:
+					break;
+				
+				default:
+					break;
+			}
+
+			switch(terminate){
+				case IRC_PARSE_TERMINATE_NOT:
+					break;
+				case IRC_PARSE_TERMINATE_EOF:
+					goto ParseTerminate;
+				case IRC_PARSE_TERMINATE_CRLF:
+					goto ParseTerminateCRLF;
+			}
+
+			read_ptr_begin = ++read_ptr;
+
+			++paramsCount;//TODO: Standards says 14 is the max amount of parameters
+		}else
+			++read_ptr;
+	};
 
 	ParseTerminate:
 		return STRINGCP(read_ptr,raw_message.length-(read_ptr-raw_message.ptr));
@@ -238,7 +345,7 @@ bool irc_read_message(const irc_connection* connection,void(*onMessageFunc)(cons
 	//If a message is sent from the server
 	if((read_len = irc_read(connection,STRINGP(connection->read_buffer,IRC_BUFFER_LENGTH)))){
 		if(read_len<0){//Error checking
-			fprintf(stderr,"Error: read() returned negative value: %i\n",read_len);
+			fprintf(stderr,"Error: read() returned negative value: %zi\n",read_len);
 			return false;
 		}
 
@@ -248,7 +355,7 @@ bool irc_read_message(const irc_connection* connection,void(*onMessageFunc)(cons
 		irc_message message;
 		Stringcp read_string = STRINGCP(connection->read_buffer,read_len);
 		do{
-			irc_parse_message(connection,read_string,&message);
+			read_string = irc_parse_message(connection,read_string,&message);
 			onMessageFunc(connection,&message);
 		}while(read_string.length>0);
 
