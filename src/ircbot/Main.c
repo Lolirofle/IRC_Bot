@@ -20,6 +20,7 @@
 //TODO: Commands: "to <channel/nickname> <command>"
 //TODO: Move most the stuff from Main.c to IRCBot.c and rename IRCBot.c to Toabot.c
 //TODO: Avoid "static" variables that resides in functions or in the global scope because it makes data races possible.
+//TODO: Multithreading in the bot for command processing
 
 struct IRCBot bot;
 char* defaultChannel;
@@ -132,6 +133,15 @@ void onMessageFunc(const irc_connection* connection,const irc_message* message){
 							message->command.privmsg.text.ptr + message->command.privmsg.text.length
 						);
 					break;
+
+				case IRC_MESSAGE_COMMAND_TYPE_PING:{
+					//TODO: Not exactly following the standards
+					char tmp[message->raw_message.length];
+					memcpy(tmp,message->raw_message.ptr,message->raw_message.length);
+					tmp[1]='O';
+					//Send response
+					irc_send_raw(connection,tmp,message->raw_message.length);
+				}	break;
 
 				default:
 					break;

@@ -256,6 +256,34 @@ static bool irc_parse_param_away(struct irc_message* out,byte param_count,const 
 	return true;
 }
 
+static bool irc_parse_param_ping(struct irc_message* out,byte param_count,const char* begin,const char* after_end){
+	switch(param_count){
+		case 1:
+			out->command.ping.from = STRINGCP(begin,after_end-begin);
+			break;
+		case 2:
+			out->command.ping.to = STRINGCP(begin,after_end-begin);
+			break;
+		default:
+			return false;
+	}
+	return true;
+}
+
+static bool irc_parse_param_pong(struct irc_message* out,byte param_count,const char* begin,const char* after_end){
+	switch(param_count){
+		case 1:
+			out->command.pong.from = STRINGCP(begin,after_end-begin);
+			break;
+		case 2:
+			out->command.pong.to = STRINGCP(begin,after_end-begin);
+			break;
+		default:
+			return false;
+	}
+	return true;
+}
+
 static bool irc_parse_param_error(struct irc_message* out,byte param_count,const char* begin,const char* after_end){
 	switch(param_count){
 		case 1:
@@ -387,10 +415,12 @@ Stringcp irc_parse_message(const irc_connection* connection,Stringcp raw_message
 					}
 					if(memeq(read_ptr_begin,"PING",4)){
 						out->command_type.enumerator = IRC_MESSAGE_COMMAND_TYPE_PING;
+						irc_parse_param = irc_parse_param_ping;
 						break;
 					}
 					if(memeq(read_ptr_begin,"PONG",4)){
 						out->command_type.enumerator = IRC_MESSAGE_COMMAND_TYPE_PONG;
+						irc_parse_param = irc_parse_param_pong;
 						break;
 					}
 					if(memeq(read_ptr_begin,"NICK",4)){

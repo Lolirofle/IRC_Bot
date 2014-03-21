@@ -161,6 +161,16 @@ typedef struct irc_message{
 		}error;
 
 		struct{
+			Stringcp from;
+			Stringcp to;
+		}ping;
+
+		struct{
+			Stringcp from;
+			Stringcp to;
+		}pong;
+
+		struct{
 			Stringcp params;
 		}unknown;
 	}command;
