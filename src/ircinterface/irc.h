@@ -104,6 +104,7 @@ typedef struct irc_message{
 
 		struct{
 			LinkedList/*<Stringcp>*/* channels;
+			LinkedList/*<Stringcp>*/* keys;
 		}join;
 
 		struct{
@@ -117,7 +118,7 @@ typedef struct irc_message{
 		}topic;
 
 		struct{
-			Stringcp msgtarget;
+			Stringcp target;
 			Stringcp text;
 		}notice;
 
@@ -130,6 +131,34 @@ typedef struct irc_message{
 		struct{
 			Stringcp name;
 		}nick;
+
+		struct{
+			Stringcp message;
+		}quit;
+
+		struct{
+			Stringcp server;
+			Stringcp comment;
+		}squit;
+		
+		struct{
+			Stringcp nickname;
+			bool operation;
+			char mode;
+		}mode;
+
+		struct{
+			Stringcp nickname;
+			Stringcp comment;
+		}kill;
+
+		struct{
+			Stringcp text;
+		}away;
+
+		struct{
+			Stringcp message;
+		}error;
 
 		struct{
 			Stringcp params;
