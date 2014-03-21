@@ -10,22 +10,69 @@ size_t strlen(const char* str);
 #define IRC_FORMAT_BUFFER_LENGTH 512
 
 typedef enum irc_message_prefix_type{
-	IRC_MESSAGE_PREFIX_UNKNOWN,
+	IRC_MESSAGE_PREFIX_UNDETERMINED,
+	IRC_MESSAGE_PREFIX_NONE,
 	IRC_MESSAGE_PREFIX_USER,
-	IRC_MESSAGE_PREFIX_SERVER
+	IRC_MESSAGE_PREFIX_SERVER,
 }irc_message_prefix_type;
 
-typedef enum irc_message_type{
-	IRC_MESSAGE_TYPE_UNKNOWN,
-	IRC_MESSAGE_TYPE_NUMBER,
-	IRC_MESSAGE_TYPE_JOIN,
-	IRC_MESSAGE_TYPE_PART,
-	IRC_MESSAGE_TYPE_NICK,
-	IRC_MESSAGE_TYPE_TOPIC,
-	IRC_MESSAGE_TYPE_KICK,
-	IRC_MESSAGE_TYPE_PRIVMSG,
-	IRC_MESSAGE_TYPE_NOTICE
-}irc_message_type;
+typedef enum irc_message_command_type_type{
+	IRC_MESSAGE_COMMAND_TYPE_TYPE_UNDETERMINED,
+	IRC_MESSAGE_COMMAND_TYPE_TYPE_ENUMERATOR,
+	IRC_MESSAGE_COMMAND_TYPE_TYPE_NUMBER,
+	IRC_MESSAGE_COMMAND_TYPE_TYPE_UNKNOWN,
+}irc_message_command_type_type;
+
+typedef enum irc_message_command_type{
+	IRC_MESSAGE_COMMAND_TYPE_JOIN,
+	IRC_MESSAGE_COMMAND_TYPE_PART,
+	IRC_MESSAGE_COMMAND_TYPE_NICK,
+	IRC_MESSAGE_COMMAND_TYPE_TOPIC,
+	IRC_MESSAGE_COMMAND_TYPE_KICK,
+	IRC_MESSAGE_COMMAND_TYPE_PRIVMSG,
+	IRC_MESSAGE_COMMAND_TYPE_NOTICE,
+	IRC_MESSAGE_COMMAND_TYPE_QUIT,
+	IRC_MESSAGE_COMMAND_TYPE_SQUIT,
+	IRC_MESSAGE_COMMAND_TYPE_MODE,
+
+	IRC_MESSAGE_COMMAND_TYPE_PASS,
+	IRC_MESSAGE_COMMAND_TYPE_USER,
+	IRC_MESSAGE_COMMAND_TYPE_OPER,
+	IRC_MESSAGE_COMMAND_TYPE_SERVICE,
+	IRC_MESSAGE_COMMAND_TYPE_NAMES,
+	IRC_MESSAGE_COMMAND_TYPE_LIST,
+	IRC_MESSAGE_COMMAND_TYPE_INVITE,
+	IRC_MESSAGE_COMMAND_TYPE_MOTD,
+	IRC_MESSAGE_COMMAND_TYPE_LUSERS,
+	IRC_MESSAGE_COMMAND_TYPE_VERSION,
+	IRC_MESSAGE_COMMAND_TYPE_STATS,
+	IRC_MESSAGE_COMMAND_TYPE_LINKS,
+	IRC_MESSAGE_COMMAND_TYPE_TIME,
+	IRC_MESSAGE_COMMAND_TYPE_CONNECT,
+	IRC_MESSAGE_COMMAND_TYPE_TRACE,
+	IRC_MESSAGE_COMMAND_TYPE_ADMIN,
+	IRC_MESSAGE_COMMAND_TYPE_INFO,
+	IRC_MESSAGE_COMMAND_TYPE_SERVLIST,
+	IRC_MESSAGE_COMMAND_TYPE_SQUERY,
+
+	IRC_MESSAGE_COMMAND_TYPE_WHO,
+	IRC_MESSAGE_COMMAND_TYPE_WHOIS,
+	IRC_MESSAGE_COMMAND_TYPE_WHOWAS,
+
+	IRC_MESSAGE_COMMAND_TYPE_KILL,
+	IRC_MESSAGE_COMMAND_TYPE_PING,
+	IRC_MESSAGE_COMMAND_TYPE_PONG,
+	IRC_MESSAGE_COMMAND_TYPE_ERROR,
+
+	IRC_MESSAGE_COMMAND_TYPE_AWAY,
+	IRC_MESSAGE_COMMAND_TYPE_REHASH,
+	IRC_MESSAGE_COMMAND_TYPE_RESTART,
+	IRC_MESSAGE_COMMAND_TYPE_SUMMON,
+	IRC_MESSAGE_COMMAND_TYPE_WALLOPS,
+	IRC_MESSAGE_COMMAND_TYPE_USERHOST,
+	IRC_MESSAGE_COMMAND_TYPE_ISON,
+
+}irc_message_command_type;
 
 typedef struct irc_message{
 	Stringcp raw_message;
@@ -33,26 +80,99 @@ typedef struct irc_message{
 	irc_message_prefix_type prefix_type;
 	union{
 		struct{
-			Stringp nickname;
-			Stringp username;
-			Stringp host;
+			Stringcp nickname;
+			Stringcp username;
+			Stringcp host;
 		}user;
 
 		struct{
-			Stringp name;
+			Stringcp name;
 		}server;
 	}prefix;
 
-	struct{
-		unsigned int /*irc_message_type*/ command_type        :6; //Value limit: 0 to 64
-		unsigned int /*unsigned int*/     command_type_number :10;//Value limit: 0 to 1024
-	};
+	irc_message_command_type_type command_type_type;
 	union{
-		LinkedList/*<Stringp>*/* channels;
+		irc_message_command_type enumerator;
+		unsigned short number;
+		Stringcp unknown;
+	}command_type;
+	union{
 		struct{
-			Stringp target;
-			Stringp text;
+			Stringcp target;
+			Stringcp text;
 		}privmsg;
+
+		struct{
+			LinkedList/*<Stringcp>*/* channels;
+			LinkedList/*<Stringcp>*/* keys;
+		}join;
+
+		struct{
+			LinkedList/*<Stringcp>*/* channels;
+			Stringcp message;
+		}part;
+
+		struct{
+			Stringcp channel;
+			Stringcp text;
+		}topic;
+
+		struct{
+			Stringcp target;
+			Stringcp text;
+		}notice;
+
+		struct{
+			LinkedList/*<Stringcp>*/* channels;
+			LinkedList/*<Stringcp>*/* users;
+			Stringcp comment;
+		}kick;
+
+		struct{
+			Stringcp name;
+		}nick;
+
+		struct{
+			Stringcp message;
+		}quit;
+
+		struct{
+			Stringcp server;
+			Stringcp comment;
+		}squit;
+		
+		struct{
+			Stringcp nickname;
+			bool operation;
+			char mode;
+		}mode;
+
+		struct{
+			Stringcp nickname;
+			Stringcp comment;
+		}kill;
+
+		struct{
+			Stringcp text;
+		}away;
+
+		struct{
+			Stringcp message;
+		}error;
+
+		struct{
+			Stringcp from;
+			Stringcp to;
+		}ping;
+
+		struct{
+			Stringcp from;
+			Stringcp to;
+		}pong;
+
+		struct{
+			Stringcp params;
+		}unknown;
 	}command;
 }irc_message;
 
@@ -146,7 +266,7 @@ inline void irc_part_channel(const irc_connection* connection,const char* channe
 	irc_send_rawf(connection,"PART %s\r\n",channel);
 }
 
-void irc_parse_message(const irc_connection* connection,Stringcp raw_message,void(*onMessageFunc)(const irc_connection* connection,const irc_message* message));
+Stringcp irc_parse_message(const irc_connection* connection,Stringcp raw_message,irc_message* out);
 
 void irc_send_message(const irc_connection* connection,Stringcp target,Stringcp message);
 

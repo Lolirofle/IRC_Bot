@@ -70,178 +70,554 @@ void irc_send_message(const irc_connection* connection,Stringcp target,Stringcp 
 	char write_buffer[message.length+target.length+12];
 
 	int len = Stringp_vcopy(STRINGP(write_buffer,IRC_BUFFER_LENGTH),5,
-		STRINGP("PRIVMSG ",8),
+		STRINGCP("PRIVMSG ",8),
 		target,
-		STRINGP(" :",2),
+		STRINGCP(" :",2),
 		message,
-		STRINGP("\r\n",2)
+		STRINGCP("\r\n",2)
 	);
 	irc_send_raw(connection,write_buffer,len);
 }
 
-void irc_parse_message(const irc_connection* connection,Stringcp raw_message,void(*onMessageFunc)(const irc_connection* connection,const irc_message* message)){
-	//If standard message prefix
-	if(raw_message.ptr[0] == ':'){
-		irc_message message;
-		message.raw_message = raw_message;
+//////////////////////////
+// Parsing
 
-		char* read_ptr       = raw_message.ptr+1,
-		    * read_ptr_begin = read_ptr,
-		    * read_ptr_end   = raw_message.ptr+raw_message.length;
+static bool irc_parse_param_privmsg(struct irc_message* out,byte param_count,const char* begin,const char* after_end){
+	switch(param_count){
+		case 1:
+			out->command.privmsg.target = STRINGCP(begin,after_end-begin);
+			break;
+		case 2:
+			out->command.privmsg.text = STRINGCP(begin,after_end-begin);
+			break;
+		default:
+			return false;
+	}
+	return true;
+}
+
+static bool irc_parse_param_join(struct irc_message* out,byte param_count,const char* begin,const char* after_end){
+	switch(param_count){
+		case 1:
+			//out->command.join.channels = STRINGCP(begin,after_end-begin);
+			break;
+		case 2:
+			//out->command.join.channels = STRINGCP(begin,after_end-begin);
+			break;
+		default:
+			return false;
+	}
+	return true;
+}
+
+static bool irc_parse_param_part(struct irc_message* out,byte param_count,const char* begin,const char* after_end){
+	switch(param_count){
+		case 1:
+			//out->command.join.channels = STRINGCP(begin,after_end-begin);
+			break;
+		case 2:
+			out->command.part.message = STRINGCP(begin,after_end-begin);
+			break;
+		default:
+			return false;
+	}
+	return true;
+}
+
+static bool irc_parse_param_topic(struct irc_message* out,byte param_count,const char* begin,const char* after_end){
+	switch(param_count){
+		case 1:
+			out->command.topic.channel = STRINGCP(begin,after_end-begin);
+			break;
+		case 2:
+			out->command.topic.text = STRINGCP(begin,after_end-begin);
+			break;
+		default:
+			return false;
+	}
+	return true;
+}
+
+static bool irc_parse_param_notice(struct irc_message* out,byte param_count,const char* begin,const char* after_end){
+	switch(param_count){
+		case 1:
+			out->command.notice.target = STRINGCP(begin,after_end-begin);
+			break;
+		case 2:
+			out->command.notice.text = STRINGCP(begin,after_end-begin);
+			break;
+		default:
+			return false;
+	}
+	return true;
+}
+
+static bool irc_parse_param_kick(struct irc_message* out,byte param_count,const char* begin,const char* after_end){
+	switch(param_count){
+		case 1:
+			//out->command.kick.channels = STRINGCP(begin,after_end-begin);
+			break;
+		case 2:
+			//out->command.kick.channels = STRINGCP(begin,after_end-begin);
+			break;
+		case 3:
+			out->command.kick.comment = STRINGCP(begin,after_end-begin);
+			break;
+		default:
+			return false;
+	}
+	return true;
+}
+
+static bool irc_parse_param_nick(struct irc_message* out,byte param_count,const char* begin,const char* after_end){
+	switch(param_count){
+		case 1:
+			out->command.nick.name = STRINGCP(begin,after_end-begin);
+			break;
+		default:
+			return false;
+	}
+	return true;
+}
+
+static bool irc_parse_param_quit(struct irc_message* out,byte param_count,const char* begin,const char* after_end){
+	switch(param_count){
+		case 1:
+			out->command.quit.message = STRINGCP(begin,after_end-begin);
+			break;
+		default:
+			return false;
+	}
+	return true;
+}
+
+static bool irc_parse_param_squit(struct irc_message* out,byte param_count,const char* begin,const char* after_end){
+	switch(param_count){
+		case 1:
+			out->command.squit.server = STRINGCP(begin,after_end-begin);
+			break;
+		case 2:
+			out->command.squit.comment = STRINGCP(begin,after_end-begin);
+			break;
+		default:
+			return false;
+	}
+	return true;
+}
+
+static bool irc_parse_param_mode(struct irc_message* out,byte param_count,const char* begin,const char* after_end){
+	switch(param_count){
+		case 1:
+			out->command.mode.nickname = STRINGCP(begin,after_end-begin);
+			break;
+		case 2:
+			if(after_end-begin<2)
+				return false;
+			switch(begin[0]){
+				case '+':
+					out->command.mode.operation = true;
+					break;
+				case '-':
+					out->command.mode.operation = false;
+					break;
+				default:
+					return false;
+			}
+			out->command.mode.mode = begin[1];
+			break;
+		default:
+			return false;
+	}
+	return true;
+}
+
+static bool irc_parse_param_kill(struct irc_message* out,byte param_count,const char* begin,const char* after_end){
+	switch(param_count){
+		case 1:
+			out->command.kill.nickname = STRINGCP(begin,after_end-begin);
+			break;
+		case 2:
+			out->command.kill.comment = STRINGCP(begin,after_end-begin);
+			break;
+		default:
+			return false;
+	}
+	return true;
+}
+
+static bool irc_parse_param_away(struct irc_message* out,byte param_count,const char* begin,const char* after_end){
+	switch(param_count){
+		case 1:
+			out->command.away.text = STRINGCP(begin,after_end-begin);
+			break;
+		default:
+			return false;
+	}
+	return true;
+}
+
+static bool irc_parse_param_ping(struct irc_message* out,byte param_count,const char* begin,const char* after_end){
+	switch(param_count){
+		case 1:
+			out->command.ping.from = STRINGCP(begin,after_end-begin);
+			break;
+		case 2:
+			out->command.ping.to = STRINGCP(begin,after_end-begin);
+			break;
+		default:
+			return false;
+	}
+	return true;
+}
+
+static bool irc_parse_param_pong(struct irc_message* out,byte param_count,const char* begin,const char* after_end){
+	switch(param_count){
+		case 1:
+			out->command.pong.from = STRINGCP(begin,after_end-begin);
+			break;
+		case 2:
+			out->command.pong.to = STRINGCP(begin,after_end-begin);
+			break;
+		default:
+			return false;
+	}
+	return true;
+}
+
+static bool irc_parse_param_error(struct irc_message* out,byte param_count,const char* begin,const char* after_end){
+	switch(param_count){
+		case 1:
+			out->command.error.message = STRINGCP(begin,after_end-begin);
+			break;
+		default:
+			return false;
+	}
+	return true;
+}
+
+Stringcp irc_parse_message(const irc_connection* connection,Stringcp raw_message,irc_message* out){
+	const char* read_ptr       = raw_message.ptr,
+	          * read_ptr_begin = read_ptr,
+	          *const read_ptr_end = raw_message.ptr + raw_message.length;
+
+	//Initialize initial fields
+	out->raw_message = raw_message;
+	out->prefix_type = IRC_MESSAGE_PREFIX_UNDETERMINED;
+	out->command_type_type = IRC_MESSAGE_COMMAND_TYPE_TYPE_UNDETERMINED;
+
+	//Begin parsing
+	//It parses from left to right, convenient for getting what type of message it is but hard for determining the prefix.
+
+	//If at end
+	if(read_ptr>=read_ptr_end)
+		goto ParseTerminate;
+
+	//If the message has a prefix
+	if(raw_message.ptr[0] == ':'){
+		read_ptr_begin = ++read_ptr;
 
 		//Prefix
-		message.prefix_type = IRC_MESSAGE_PREFIX_UNKNOWN;
-		while(true){
+		for(bool continueLoop=true;continueLoop;){
+			//If at end of message
 			if(read_ptr>=read_ptr_end)
-				return;
+				goto ParseTerminate;
 			if(read_ptr[0] == '\r' && read_ptr[1] == '\n')
-				goto TermNewCommand;
+				goto ParseTerminateCRLF;
 
-			if(*read_ptr == ' '){//If end of prefix
-				if(message.prefix_type == IRC_MESSAGE_PREFIX_USER){//If already determined it is a user message, then it is a hostname
-					message.prefix.user.host = STRINGP(read_ptr_begin,read_ptr-read_ptr_begin);
-					read_ptr_begin = ++read_ptr;
-				}else if(message.prefix_type == IRC_MESSAGE_PREFIX_UNKNOWN){//If not yet determined, then it is a servername
-					message.prefix.server.name = STRINGP(read_ptr_begin,read_ptr-read_ptr_begin);
-					message.prefix_type = IRC_MESSAGE_PREFIX_SERVER;
-					read_ptr_begin = ++read_ptr;
-				}
-				break;
-			}
+			//If the prefix type hasn't been determined to be in any format and a '!' or '@' is found
+			switch(read_ptr[0]){
+				case ' ':
+					continueLoop = false;
 
-			if(message.prefix_type == IRC_MESSAGE_PREFIX_USER && *read_ptr == '@'){//If already found '!' and finds '@', then it is a username
-				message.prefix.user.username = STRINGP(read_ptr_begin,read_ptr-read_ptr_begin);
-				read_ptr_begin = ++read_ptr;
-			}
-			else if(*read_ptr == '!'){//If separated by '!', then it is a nickname
-				message.prefix.user.nickname = STRINGP(read_ptr_begin,read_ptr-read_ptr_begin);
-				message.prefix_type = IRC_MESSAGE_PREFIX_USER;
-				read_ptr_begin = ++read_ptr;
-			}
-
-			++read_ptr;
-		}
-
-		//Command
-		message.command_type = IRC_MESSAGE_TYPE_UNKNOWN;
-		while(true){
-			if(read_ptr>=read_ptr_end)
-				return;
-			if(read_ptr[0] == '\r' && read_ptr[1] == '\n')
-				goto TermNewCommand;
-
-			if(*read_ptr == ' '){//If end of command
-				switch(read_ptr-read_ptr_begin){
-					case 3:
-						if(read_ptr_begin[0]>='0' && read_ptr_begin[0]<='9' &&
-						   read_ptr_begin[1]>='0' && read_ptr_begin[1]<='9' &&
-						   read_ptr_begin[2]>='0' && read_ptr_begin[2]<='9'){
-							message.command_type = IRC_MESSAGE_TYPE_NUMBER;
-							message.command_type_number = atoi((char[4]){read_ptr_begin[0],read_ptr_begin[1],read_ptr_begin[2],'\0'});
+					//If the prefix hasn't been determined to be in any format and it is the end
+					if(out->prefix_type == IRC_MESSAGE_PREFIX_UNDETERMINED){
+						//It is the server name (The string from read_ptr_begin to read_ptr)
+						out->prefix_type = IRC_MESSAGE_PREFIX_SERVER;
+						out->prefix.server.name = STRINGCP(read_ptr_begin,read_ptr-read_ptr_begin);
+						read_ptr_begin = ++read_ptr;
+						break;
+					}
+				case '@':
+				case '!':
+					if(out->prefix_type == IRC_MESSAGE_PREFIX_UNDETERMINED){
+						//It is a nickname parameter (The string from read_ptr_begin to read_ptr)
+						out->prefix.user.nickname = STRINGCP(read_ptr_begin,read_ptr-read_ptr_begin);
+						out->prefix_type = IRC_MESSAGE_PREFIX_USER;
+					}
+					//If the prefix type has been determined to be in the user format
+					else if(out->prefix_type == IRC_MESSAGE_PREFIX_USER){
+						//Lookup the beginning and determine by that
+						switch(read_ptr_begin[-1]){
+							case '@':
+								out->prefix.user.host = STRINGCP(read_ptr_begin,read_ptr-read_ptr_begin);
+								break;
+							case '!':
+								out->prefix.user.username = STRINGCP(read_ptr_begin,read_ptr-read_ptr_begin);
+								break;
+							default:
+								break;
 						}
+					}
+					read_ptr_begin = ++read_ptr;
+					break;
+				default:
+					++read_ptr;
+					break;
+			}
+		}
+	}else
+		out->prefix_type = IRC_MESSAGE_PREFIX_NONE;
+
+	//Prepare termination variable that should be toggled when at end of message
+	enum{
+		IRC_PARSE_TERMINATE_NOT,
+		IRC_PARSE_TERMINATE_EOF,
+		IRC_PARSE_TERMINATE_CRLF,
+	}terminate = IRC_PARSE_TERMINATE_NOT;
+
+	//Command
+	bool(*irc_parse_param)(struct irc_message* out,byte param_count,const char* begin,const char* after_end) = NULL;
+
+	loop{
+		//If at end of message
+		if(read_ptr>=read_ptr_end)
+			terminate = IRC_PARSE_TERMINATE_EOF;
+		else if(read_ptr[0] == '\r' && read_ptr[1] == '\n')
+			terminate = IRC_PARSE_TERMINATE_CRLF;
+
+		//If end of command
+		if(terminate!=IRC_PARSE_TERMINATE_NOT || read_ptr[0] == ' '){
+			out->command_type_type = IRC_MESSAGE_COMMAND_TYPE_TYPE_ENUMERATOR;
+			switch(read_ptr-read_ptr_begin){
+				case 3:
+					if(read_ptr_begin[0]>='0' && read_ptr_begin[0]<='9' &&
+					   read_ptr_begin[1]>='0' && read_ptr_begin[1]<='9' &&
+					   read_ptr_begin[2]>='0' && read_ptr_begin[2]<='9'){
+						out->command_type_type = IRC_MESSAGE_COMMAND_TYPE_TYPE_NUMBER;
+						out->command_type.number = (read_ptr_begin[0]-'0')*100 + (read_ptr_begin[1]-'0')*10 + (read_ptr_begin[2]-'0')*1;
 						break;
-					case 4:
-						if(memeq(read_ptr_begin,"JOIN",4)){
-							message.command_type = IRC_MESSAGE_TYPE_JOIN;
-							message.command.channels=NULL;
-						}else if(memeq(read_ptr_begin,"PART",4)){
-							message.command_type = IRC_MESSAGE_TYPE_PART;
-							message.command.channels=NULL;
-						}else if(memeq(read_ptr_begin,"NICK",4))
-							message.command_type = IRC_MESSAGE_TYPE_NICK;
-						else if(memeq(read_ptr_begin,"KICK",4))
-							message.command_type = IRC_MESSAGE_TYPE_KICK;
+					}
+					goto NotFoundMessageType;
+				case 4:
+					if(memeq(read_ptr_begin,"JOIN",4)){
+						out->command_type.enumerator = IRC_MESSAGE_COMMAND_TYPE_JOIN;
+						out->command.join.channels = NULL;
+						out->command.join.keys     = NULL;
+						irc_parse_param = irc_parse_param_join;
 						break;
-					case 5:
-						if(memeq(read_ptr_begin,"TOPIC",5))
-							message.command_type = IRC_MESSAGE_TYPE_TOPIC;
+					}
+					if(memeq(read_ptr_begin,"PART",4)){
+						out->command_type.enumerator = IRC_MESSAGE_COMMAND_TYPE_PART;
+						out->command.part.channels = NULL;
+						out->command.part.message  = Stringcp_init;
+						irc_parse_param = irc_parse_param_part;
 						break;
-					case 6:
-						if(memeq(read_ptr_begin,"NOTICE",6))
-							message.command_type = IRC_MESSAGE_TYPE_NOTICE;
+					}
+					if(memeq(read_ptr_begin,"PING",4)){
+						out->command_type.enumerator = IRC_MESSAGE_COMMAND_TYPE_PING;
+						irc_parse_param = irc_parse_param_ping;
 						break;
-					case 7:
-						if(memeq(read_ptr_begin,"PRIVMSG",7))
-							message.command_type = IRC_MESSAGE_TYPE_PRIVMSG;
+					}
+					if(memeq(read_ptr_begin,"PONG",4)){
+						out->command_type.enumerator = IRC_MESSAGE_COMMAND_TYPE_PONG;
+						irc_parse_param = irc_parse_param_pong;
 						break;
+					}
+					if(memeq(read_ptr_begin,"NICK",4)){
+						out->command_type.enumerator = IRC_MESSAGE_COMMAND_TYPE_NICK;
+						out->command.nick.name = Stringcp_init;
+						irc_parse_param = irc_parse_param_nick;
+						break;
+					}
+					if(memeq(read_ptr_begin,"KICK",4)){
+						out->command_type.enumerator = IRC_MESSAGE_COMMAND_TYPE_KICK;
+						out->command.kick.channels = NULL;
+						out->command.kick.users    = NULL;
+						irc_parse_param = irc_parse_param_kick;
+						break;
+					}
+					if(memeq(read_ptr_begin,"QUIT",4)){
+						out->command_type.enumerator = IRC_MESSAGE_COMMAND_TYPE_QUIT;
+						out->command.quit.message = Stringcp_init;
+						irc_parse_param = irc_parse_param_quit;
+						break;
+					}
+					if(memeq(read_ptr_begin,"MODE",4)){
+						out->command_type.enumerator = IRC_MESSAGE_COMMAND_TYPE_MODE;
+						out->command.mode.nickname  = Stringcp_init;
+						out->command.mode.operation = false;
+						out->command.mode.mode      = '\0';
+						irc_parse_param = irc_parse_param_mode;
+						break;
+					}
+					if(memeq(read_ptr_begin,"KILL",4)){
+						out->command_type.enumerator = IRC_MESSAGE_COMMAND_TYPE_KILL;
+						out->command.kill.nickname = Stringcp_init;
+						out->command.kill.comment  = Stringcp_init;
+						irc_parse_param = irc_parse_param_kill;
+						break;
+					}
+					if(memeq(read_ptr_begin,"AWAY",4)){
+						out->command_type.enumerator = IRC_MESSAGE_COMMAND_TYPE_AWAY;
+						out->command.away.text = Stringcp_init;
+						irc_parse_param = irc_parse_param_away;
+						break;
+					}
+					goto NotFoundMessageType;
+				case 5:
+					if(memeq(read_ptr_begin,"TOPIC",5)){
+						out->command_type.enumerator = IRC_MESSAGE_COMMAND_TYPE_TOPIC;
+						out->command.topic.channel = Stringcp_init;
+						out->command.topic.text    = Stringcp_init;
+						irc_parse_param = irc_parse_param_topic;
+						break;
+					}
+					if(memeq(read_ptr_begin,"SQUIT",5)){
+						out->command_type.enumerator = IRC_MESSAGE_COMMAND_TYPE_SQUIT;
+						out->command.squit.server  = Stringcp_init;
+						out->command.squit.comment = Stringcp_init;
+						irc_parse_param = irc_parse_param_squit;
+						break;
+					}
+					if(memeq(read_ptr_begin,"ERROR",5)){
+						out->command_type.enumerator = IRC_MESSAGE_COMMAND_TYPE_ERROR;
+						out->command.error.message = Stringcp_init;
+						irc_parse_param = irc_parse_param_error;
+						break;
+					}
+					goto NotFoundMessageType;
+				case 6:
+					if(memeq(read_ptr_begin,"NOTICE",6)){
+						out->command_type.enumerator = IRC_MESSAGE_COMMAND_TYPE_NOTICE;
+						out->command.notice.target = Stringcp_init;
+						out->command.notice.text   = Stringcp_init;
+						irc_parse_param = irc_parse_param_notice;
+						break;
+					}
+					goto NotFoundMessageType;
+				case 7:
+					if(memeq(read_ptr_begin,"PRIVMSG",7)){
+						out->command_type.enumerator = IRC_MESSAGE_COMMAND_TYPE_PRIVMSG;
+						out->command.privmsg.target = Stringcp_init;
+						out->command.privmsg.text   = Stringcp_init;
+						irc_parse_param = irc_parse_param_privmsg;
+						break;
+					}
+					goto NotFoundMessageType;
+				default:
+				NotFoundMessageType:
+					out->command_type_type = IRC_MESSAGE_COMMAND_TYPE_TYPE_UNKNOWN;
+					out->command_type.unknown = STRINGCP(read_ptr_begin,read_ptr-read_ptr_begin);
+					break;
+			}
+
+			read_ptr_begin = ++read_ptr;
+
+			switch(terminate){
+				case IRC_PARSE_TERMINATE_NOT:
+					break;
+				case IRC_PARSE_TERMINATE_EOF:
+					goto ParseTerminate;
+				case IRC_PARSE_TERMINATE_CRLF:
+					goto ParseTerminateCRLF;
+			}
+			break;
+		}
+
+		++read_ptr;
+	}
+
+	//Params
+	if(irc_parse_param){
+		byte param_count = 0;
+		bool trailing = false;
+		loop{
+			//If at end of message
+			if(read_ptr>=read_ptr_end)
+				terminate = IRC_PARSE_TERMINATE_EOF;
+			else{
+				if(read_ptr[0] == '\r' && read_ptr[1] == '\n')
+					terminate = IRC_PARSE_TERMINATE_CRLF;
+				//Param trailing
+				else if(read_ptr[0] == ':'){
+					read_ptr_begin = ++read_ptr;
+					trailing = true;
 				}
+			}
+
+			//If end of param
+			if(terminate!=IRC_PARSE_TERMINATE_NOT || (!trailing && read_ptr[0] == ' ')){
+				//TODO: Standards says 14 is the max amount of parameters
+				if(!irc_parse_param(out,++param_count,read_ptr_begin,read_ptr))
+					printf("Error: Parse error on message command parameter %u: \"%.*s\"\n",param_count,(int)(read_ptr-read_ptr_begin),read_ptr_begin);
+
+				switch(terminate){
+					case IRC_PARSE_TERMINATE_NOT:
+						break;
+					case IRC_PARSE_TERMINATE_EOF:
+						goto ParseTerminate;
+					case IRC_PARSE_TERMINATE_CRLF:
+						goto ParseTerminateCRLF;
+				}
+
 				read_ptr_begin = ++read_ptr;
-				break;
+			}else
+				++read_ptr;
+		};
+	}
+	//Ignore params until end
+	else{
+		loop{
+			if(read_ptr>=read_ptr_end)
+				terminate = IRC_PARSE_TERMINATE_EOF;
+			else if(read_ptr[0] == '\r' && read_ptr[1] == '\n')
+				terminate = IRC_PARSE_TERMINATE_CRLF;
+
+			//If end of param
+			if(terminate!=IRC_PARSE_TERMINATE_NOT){
+				out->command.unknown.params = STRINGCP(read_ptr_begin,read_ptr-read_ptr_begin);
+
+				switch(terminate){
+					case IRC_PARSE_TERMINATE_EOF:
+						goto ParseTerminate;
+					case IRC_PARSE_TERMINATE_CRLF:
+						goto ParseTerminateCRLF;
+					case IRC_PARSE_TERMINATE_NOT:
+						break;//Should not happen because of check some lines up
+				}
 			}
 
 			++read_ptr;
 		}
-
-		//Params
-		bool repeat=false;
-		unsigned char paramCount=0;
-		while(true){//TODO: Implement all the other message command types and not only privmsg
-			if((repeat=(read_ptr[0] == '\r' && read_ptr[1] == '\n')) || read_ptr>=read_ptr_end){
-				if(paramCount==1){
-					switch(message.command_type){
-						case IRC_MESSAGE_TYPE_PRIVMSG:
-							message.command.privmsg.text = STRINGP(read_ptr_begin,read_ptr-read_ptr_begin);
-							break;
-					}
-				}
-				break;
-			}
-			
-			if(paramCount==0){
-				if(read_ptr[0] == ' '){
-					switch(message.command_type){
-						case IRC_MESSAGE_TYPE_PRIVMSG:
-							message.command.privmsg.target = STRINGP(read_ptr_begin,read_ptr-read_ptr_begin);
-							break;
-						case IRC_MESSAGE_TYPE_JOIN:{
-							Stringp* tmp = smalloc(sizeof(Stringp*));
-							*tmp = STRINGP(read_ptr_begin,read_ptr-read_ptr_begin);
-							LinkedList_push(&message.command.channels,tmp);
-						}	break;
-					}
-					if(*++read_ptr == ':')
-						++read_ptr;
-					read_ptr_begin = read_ptr;
-					++paramCount;
-				}
-			}
-			++read_ptr;
-		}
-
-		if(onMessageFunc!=NULL){
-			message.raw_message.length=read_ptr+2-message.raw_message.ptr;
-			onMessageFunc(connection,&message);
-		}
-		if(repeat){
-			TermNewCommand:
-			return irc_parse_message(connection,STRINGCP(read_ptr+2,raw_message.length-(read_ptr+2-raw_message.ptr)),onMessageFunc);
-		}
-		else
-			return;
 	}
-	//Else if it is a ping request 
-	else if(memeq(raw_message.ptr,"PING",4)){
-		char tmp[raw_message.length];
-		memcpy(tmp,raw_message.ptr,raw_message.length);
-		tmp[1]='O';
-		irc_send_raw(connection,tmp,raw_message.length);//Send
-	}
+
+	ParseTerminate:
+		return STRINGCP(read_ptr,raw_message.length-(read_ptr-raw_message.ptr));
+
+	ParseTerminateCRLF:
+		read_ptr+=2;
+		goto ParseTerminate;
 }
 
 bool irc_read_message(const irc_connection* connection,void(*onMessageFunc)(const irc_connection* connection,const irc_message* message)){
-	int read_len;
+	ssize_t read_len;
 
 	//If a message is sent from the server
-	if((read_len = read(connection->id,connection->read_buffer,IRC_BUFFER_LENGTH))){
+	if((read_len = irc_read(connection,STRINGP(connection->read_buffer,IRC_BUFFER_LENGTH)))){
 		if(read_len<0){//Error checking
-			fprintf(stderr,"Error: read() returned negative value: %i\n",read_len);
+			fprintf(stderr,"Error: read() returned negative value: %zi\n",read_len);
 			return false;
 		}
 
 		//Print the raw message that was received
 		Stringp_put(STRINGP(connection->read_buffer,read_len),stdout);
 
-		irc_parse_message(connection,STRINGCP(connection->read_buffer,read_len),onMessageFunc);
+		irc_message message;
+		Stringcp read_string = STRINGCP(connection->read_buffer,read_len);
+		do{
+			read_string = irc_parse_message(connection,read_string,&message);
+			onMessageFunc(connection,&message);
+		}while(read_string.length>0);
 
 		return true;
 	}

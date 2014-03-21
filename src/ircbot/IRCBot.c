@@ -271,7 +271,7 @@ void IRCBot_joinChannel(struct IRCBot* bot,Stringcp channel){
 
 	//Mallocate and copy string for storing in bot structure
 	String* channelName=String_malloc_from_stringcp_nt(channel);
-	LinkedList_push(&bot->channels,channelName);
+	LinkedList_push(&bot->channels,channelName);//TODO: Push to list after receiving reply indicating successful join
 
 	//Send JOIN message
 	irc_join_channel(bot->connection,channelName->data);
