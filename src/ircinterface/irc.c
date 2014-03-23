@@ -599,7 +599,7 @@ Stringcp irc_parse_message(const irc_connection* connection,Stringcp raw_message
 		goto ParseTerminate;
 }
 
-bool irc_read_message(const irc_connection* connection,void(*onMessageFunc)(const irc_connection* connection,const irc_message* message)){
+bool irc_read_message(const irc_connection* connection,void* user_data,void(*onMessageFunc)(const irc_connection* connection,const irc_message* message,void* user_data)){
 	ssize_t read_len;
 
 	//If a message is sent from the server
@@ -616,7 +616,7 @@ bool irc_read_message(const irc_connection* connection,void(*onMessageFunc)(cons
 		Stringcp read_string = STRINGCP(connection->read_buffer,read_len);
 		do{
 			read_string = irc_parse_message(connection,read_string,&message);
-			onMessageFunc(connection,&message);
+			onMessageFunc(connection,&message,user_data);
 		}while(read_string.length>0);
 
 		return true;

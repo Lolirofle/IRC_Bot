@@ -20,7 +20,7 @@ static char buffer[BUFFER_LENGTH];
 #define SCRIPT_PATH SCRIPT_DIR "/"
 #define SCRIPT_PATH_LEN 18
 
-bool plugin_onCommand(struct IRCBot* bot,Stringcp target,Stringcp command,union CommandArgument* arg){
+bool plugin_onCommand(struct IRCBot* bot,Stringcp target,Stringcp command,struct CommandArgument* arg){
 	//Copy path and command string to a buffer
 	char cmd[SCRIPT_PATH_LEN+command.length+1];
 	memcpy(cmd,SCRIPT_PATH,SCRIPT_PATH_LEN);
@@ -44,7 +44,7 @@ bool plugin_onCommand(struct IRCBot* bot,Stringcp target,Stringcp command,union 
 		return true;
 
 	//Input to program,arguments
-	fwrite(arg->free.begin,sizeof(char),arg->free.end-arg->free.begin,stream.in);
+	fwrite(arg->begin,sizeof(char),arg->end-arg->begin,stream.in);
 	p2flushWrite(stream);
 
 	//Output from program,output
@@ -74,7 +74,7 @@ bool plugin_onLoad(struct IRCBot* bot){
 	c=(struct Command){
 		Stringcp_from_cstr("extcmds"),
 		Stringcp_from_cstr("Lists all external commands"),
-		function(bool,(struct IRCBot* bot,Stringcp target,union CommandArgument* arg){
+		function(bool,(struct IRCBot* bot,Stringcp target,struct CommandArgument* arg){
 			DIR* directory;
 			struct dirent* dir;
 			char* writePtr=write_buffer;

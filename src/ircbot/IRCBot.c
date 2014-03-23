@@ -3,9 +3,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include "ircinterface/irc.h"
+#include <ircinterface/irc_messagenumbers.h>
 #include "Commands.h"
 #include "Locale.h"
 #include "api/Command.h"
+#include "api/CommandArgument.h"
 #include <lolie/Stringp.h>
 #include <lolie/String.h>
 #include <lolie/ControlStructures.h>
@@ -304,10 +306,6 @@ void IRCBot_sendMessage(struct IRCBot* bot,Stringcp target,Stringcp message){
 	irc_send_message(bot->connection,target,message);
 }
 
-void IRCBot_sendRaw(struct IRCBot* bot,Stringcp str){
-	irc_send_raw(bot->connection,str.ptr,str.length);
-}
-
 void IRCBot_performCommand(struct IRCBot* bot,Stringcp target,const char* command_begin,const char* command_end){
 	//Initialize command name
 	Stringcp commandName = STRINGCP(command_begin,0);
@@ -324,7 +322,7 @@ void IRCBot_performCommand(struct IRCBot* bot,Stringcp target,const char* comman
 			break;
 		}
 
-		//If the command separator is found
+		//If the command argument separator is found
 		if(*command_begin==' '){
 			commandName.length=command_begin-commandName.ptr;
 
@@ -341,9 +339,9 @@ void IRCBot_performCommand(struct IRCBot* bot,Stringcp target,const char* comman
 	//Initialize command and argument structures
 	//(Because it's time to search for the command and verify the arguments to the command parameters)
 	const struct Command* currentCommand;
-	union CommandArgument arg;
-	arg.free.begin = arg_begin;
-	arg.free.end   = command_end;
+	struct CommandArgument arg;
+	arg.begin = arg_begin;
+	arg.end   = command_end;
 
 	//Check with plugin hooks if command is allowed to continue parsing
 	LinkedList_forEach(bot->pluginHooks.onCommand,node){
@@ -374,4 +372,102 @@ void IRCBot_performCommand(struct IRCBot* bot,Stringcp target,const char* comman
 		);
 		irc_send_message(bot->connection,target,STRINGCP(write_buffer,len));
 	}
+}
+
+static void IRCBot_onMessageFunc(const irc_connection* connection,const irc_message* message,void* user_data){
+	struct IRCBot*const bot = user_data;
+
+	//Check with plugin hooks
+	LinkedList_forEach(bot->pluginHooks.onMessage,node){
+		if(!((typeof(((struct Plugin*)0)->functions.onMessage))(node->ptr))(bot,message));
+			return;
+	}
+
+	switch(message->command_type_type){
+		case IRC_MESSAGE_COMMAND_TYPE_TYPE_NUMBER:
+			switch(message->command_type.number){
+				case IRC_MESSAGE_TYPENO_RPL_WELCOME:
+					if(connection->initial_channel)
+						IRCBot_joinChannel(bot,STRINGCP(connection->initial_channel,strlen(connection->initial_channel)));
+					break;
+				case IRC_MESSAGE_TYPENO_ERR_NONICKNAMEGIVEN:
+				case IRC_MESSAGE_TYPENO_ERR_ERRONEUSNICKNAME:
+				case IRC_MESSAGE_TYPENO_ERR_NICKNAMEINUSE:
+				case IRC_MESSAGE_TYPENO_ERR_NICKCOLLISION:
+					//In case of infinite loop
+					if(bot->nickname.length>32)
+						break;
+
+					//Reallocate and copy string
+					bot->nickname.ptr=realloc(bot->nickname.ptr,++bot->nickname.length);
+					bot->nickname.ptr[bot->nickname.length-1]='_';
+
+					//realloc error check
+					if(!bot->nickname.ptr){
+						bot->error.code=IRCBOT_ERROR_MEMORY;
+						return;
+					}
+
+					//Send to server
+					irc_set_nickname(bot->connection,bot->nickname.ptr);
+					break;
+
+				default:
+					break;
+			}
+
+			break;
+
+		case IRC_MESSAGE_COMMAND_TYPE_TYPE_ENUMERATOR:
+			switch(message->command_type.enumerator){
+				case IRC_MESSAGE_COMMAND_TYPE_PRIVMSG:
+					//If on a channel with a '#' prefix and the private message has the correct prefix
+					if(message->command.privmsg.target.ptr[0] == '#'){
+						if(message->command.privmsg.text.length>bot->commandPrefix.length && memcmp(message->command.privmsg.text.ptr,bot->commandPrefix.ptr,bot->commandPrefix.length)==0)
+							IRCBot_performCommand(
+								bot,
+								//Target is to the channel that the command was requested in
+								STRINGP_CONST(message->command.privmsg.target),
+								//Command begins after the command prefix
+								message->command.privmsg.text.ptr + bot->commandPrefix.length,
+								//Command ends at the same position (end of the message)
+								message->command.privmsg.text.ptr + message->command.privmsg.text.length
+							);
+					}
+
+					//If private message
+					else if(message->command.privmsg.target.length == bot->nickname.length && memcmp(message->command.privmsg.target.ptr,bot->nickname.ptr,bot->nickname.length)==0)
+						IRCBot_performCommand(
+							bot,
+							//Target is the nickname that sent the command
+							STRINGP_CONST(message->prefix.user.nickname),
+							//Command begins at the beginning of the message
+							message->command.privmsg.text.ptr,
+							//Command ends at the end of the message
+							message->command.privmsg.text.ptr + message->command.privmsg.text.length
+						);
+					break;
+
+				case IRC_MESSAGE_COMMAND_TYPE_PING:{
+					//TODO: Not exactly following the standards
+					char tmp[message->raw_message.length];
+					memcpy(tmp,message->raw_message.ptr,message->raw_message.length);
+					tmp[1]='O';
+					//Send response
+					irc_send_raw(connection,tmp,message->raw_message.length);
+				}	break;
+
+				default:
+					break;
+			}
+			break;
+
+		default:
+			break;
+	}
+}
+
+enum IRCBot_Exit IRCBot_waitEvents(struct IRCBot* bot){
+	irc_read_message(bot->connection,bot,&IRCBot_onMessageFunc);
+	return bot->exit;
 }

@@ -85,15 +85,12 @@ struct Plugin* Plugin_load(struct IRCBot* bot,const char* filename){
 		LinkedList_push(&bot->pluginHooks.onCommand,plugin->functions.onCommand);
 	if((plugin->functions.onMessage = dlsym(plugin->lib,"plugin_onMessage")))
 		LinkedList_push(&bot->pluginHooks.onMessage,plugin->functions.onMessage);
+	if((plugin->functions.onMessageSend = dlsym(plugin->lib,"plugin_onMessageSend")))
+		LinkedList_push(&bot->pluginHooks.onMessageSend,plugin->functions.onMessageSend);
 	if((plugin->functions.onJoin = dlsym(plugin->lib,"plugin_onJoin")))
 		LinkedList_push(&bot->pluginHooks.onJoin,plugin->functions.onJoin);
 	if((plugin->functions.onPart = dlsym(plugin->lib,"plugin_onPart")))
 		LinkedList_push(&bot->pluginHooks.onPart,plugin->functions.onPart);
-	if((plugin->functions.onUserJoin = dlsym(plugin->lib,"plugin_onUserJoin")))
-		LinkedList_push(&bot->pluginHooks.onUserJoin,plugin->functions.onUserJoin);
-	if((plugin->functions.onUserPart = dlsym(plugin->lib,"plugin_onUserPart")))
-		LinkedList_push(&bot->pluginHooks.onUserPart,plugin->functions.onUserPart);
-
 
 	//Push the plugin into the plugin list
 	LinkedList_push(&bot->plugins,plugin);
@@ -129,15 +126,13 @@ bool Plugin_unload(struct IRCBot* bot,struct Plugin* plugin){
 		LinkedList_remove(&bot->pluginHooks.onCommand,plugin->functions.onCommand);
 	if(plugin->functions.onMessage)
 		LinkedList_remove(&bot->pluginHooks.onMessage,plugin->functions.onMessage);
+	if(plugin->functions.onMessageSend)
+		LinkedList_remove(&bot->pluginHooks.onMessageSend,plugin->functions.onMessageSend);
 	if(plugin->functions.onJoin)
 		LinkedList_remove(&bot->pluginHooks.onJoin,plugin->functions.onJoin);
 	if(plugin->functions.onPart)
 		LinkedList_remove(&bot->pluginHooks.onPart,plugin->functions.onPart);
-	if(plugin->functions.onUserJoin)
-		LinkedList_remove(&bot->pluginHooks.onUserJoin,plugin->functions.onUserJoin);
-	if(plugin->functions.onUserPart)
-		LinkedList_remove(&bot->pluginHooks.onUserPart,plugin->functions.onUserPart);
-
+	
 	//Close dynamic library
 	dlclose(plugin->lib);
 

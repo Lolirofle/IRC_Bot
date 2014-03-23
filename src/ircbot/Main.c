@@ -3,13 +3,10 @@
 #include <argp.h>
 
 #include <lolie/Stringp.h>
-#include <lolie/LinkedList.h>
 #include <lolie/Memory.h>
 #include <lolie/Math.h>
 #include <lolie/ControlStructures.h>
 
-#include <ircinterface/irc.h>
-#include <ircinterface/irc_messagenumbers.h>
 #include "Commands.h"
 #include "IRCBot.h"
 #include "api/Plugin.h"
@@ -17,14 +14,12 @@
 //TODO: "&&"" to combine commands and maybe `command` to insert a command with output as return value to an argument
 //TODO: Help pages for a list of commands and syntax, explanation, etc.
 //TODO: Command aliases
-//TODO: Commands: "to <channel/nickname> <command>"
-//TODO: Move most the stuff from Main.c to IRCBot.c and rename IRCBot.c to Toabot.c
-//TODO: Avoid "static" variables that resides in functions or in the global scope because it makes data races possible.
-//TODO: Multithreading in the bot for command processing
+//TODO: Command: "to <channel/nickname> <command>"
+//TODO: Rename IRCBot.c to Toabot.c
+//TODO: Multithreading in the bot for command processing. Also check if it is needed for mod_externalscripts
+//TODO: Split message struct to server_message and client_message where server message is messages from the server
 
-struct IRCBot bot;
-char* defaultChannel;
-
+//TODO: Remove when the parameter API is correctly implemented
 Stringp string_splitted(Stringp str,size_t(*delimiterFunc)(Stringp str),bool(*onSplitFunc)(const char* begin,const char* end)){
 	const char* arg_begin=str.ptr;
 
@@ -49,108 +44,6 @@ Stringp string_splitted(Stringp str,size_t(*delimiterFunc)(Stringp str),bool(*on
 	}
 
 	return str;
-}
-
-Stringp string_splitted_delim(Stringp str,Stringp delimiter,bool(*onSplitFunc)(const char* begin,const char* end)){
-	return string_splitted(str,function(size_t,(Stringp str){
-		if(str.length>=delimiter.length && memeq(str.ptr,delimiter.ptr,delimiter.length))
-			return delimiter.length;
-		else
-			return 0;
-	}),onSplitFunc);
-}
-
-Stringp Stringp_find_substr(Stringp str,bool(*findFunc)(Stringp str));
-
-void onMessageFunc(const irc_connection* connection,const irc_message* message){
-	//Check with plugin hooks
-	LinkedList_forEach(bot.pluginHooks.onMessage,node){
-		if(!((typeof(((struct Plugin*)0)->functions.onMessage))(node->ptr))(&bot,message));
-			return;
-	}
-
-	switch(message->command_type_type){
-		case IRC_MESSAGE_COMMAND_TYPE_TYPE_NUMBER:
-			switch(message->command_type.number){
-				case IRC_MESSAGE_TYPENO_RPL_WELCOME:
-					if(connection->initial_channel)
-						IRCBot_joinChannel(&bot,STRINGCP(connection->initial_channel,strlen(connection->initial_channel)));
-					break;
-				case IRC_MESSAGE_TYPENO_ERR_NONICKNAMEGIVEN:
-				case IRC_MESSAGE_TYPENO_ERR_ERRONEUSNICKNAME:
-				case IRC_MESSAGE_TYPENO_ERR_NICKNAMEINUSE:
-				case IRC_MESSAGE_TYPENO_ERR_NICKCOLLISION:
-					//In case of infinite loop
-					if(bot.nickname.length>32)
-						break;
-
-					//Reallocate and copy string
-					bot.nickname.ptr=realloc(bot.nickname.ptr,++bot.nickname.length);
-					bot.nickname.ptr[bot.nickname.length-1]='_';
-
-					//realloc error check
-					if(!bot.nickname.ptr){
-						bot.error.code=IRCBOT_ERROR_MEMORY;
-						return;
-					}
-
-					//Send to server
-					irc_set_nickname(bot.connection,bot.nickname.ptr);
-					break;
-
-				default:
-					break;
-			}
-
-			break;
-
-		case IRC_MESSAGE_COMMAND_TYPE_TYPE_ENUMERATOR:
-			switch(message->command_type.enumerator){
-				case IRC_MESSAGE_COMMAND_TYPE_PRIVMSG:
-					//If on a channel with a '#' prefix and the private message has the correct prefix
-					if(message->command.privmsg.target.ptr[0] == '#'){
-						if(message->command.privmsg.text.length>bot.commandPrefix.length && memcmp(message->command.privmsg.text.ptr,bot.commandPrefix.ptr,bot.commandPrefix.length)==0)
-							IRCBot_performCommand(
-								&bot,
-								//Target is to the channel that the command was requested in
-								STRINGP_CONST(message->command.privmsg.target),
-								//Command begins after the command prefix
-								message->command.privmsg.text.ptr + bot.commandPrefix.length,
-								//Command ends at the same position (end of the message)
-								message->command.privmsg.text.ptr + message->command.privmsg.text.length
-							);
-					}
-
-					//If private message
-					else if(message->command.privmsg.target.length == bot.nickname.length && memcmp(message->command.privmsg.target.ptr,bot.nickname.ptr,bot.nickname.length)==0)
-						IRCBot_performCommand(
-							&bot,
-							//Target is the nickname that sent the command
-							STRINGP_CONST(message->prefix.user.nickname),
-							//Command begins at the beginning of the message
-							message->command.privmsg.text.ptr,
-							//Command ends at the end of the message
-							message->command.privmsg.text.ptr + message->command.privmsg.text.length
-						);
-					break;
-
-				case IRC_MESSAGE_COMMAND_TYPE_PING:{
-					//TODO: Not exactly following the standards
-					char tmp[message->raw_message.length];
-					memcpy(tmp,message->raw_message.ptr,message->raw_message.length);
-					tmp[1]='O';
-					//Send response
-					irc_send_raw(connection,tmp,message->raw_message.length);
-				}	break;
-
-				default:
-					break;
-			}
-			break;
-
-		default:
-			break;
-	}
 }
 
 static struct argp_option program_arg_options[] = {
@@ -228,9 +121,9 @@ static struct argp program_argp = {
 	"Toabot, the extensible IRC bot.\nhttps://github.com/Lolirofle/IRC_Bot"
 };
 
-int main(int argc,char **argv){
-	int exitCode = 0;
-	
+struct IRCBot bot;
+
+int main(int argc,char **argv){	
 	/////////////////////////////////////////////////////////
 	// Program arguments
 	//
@@ -263,9 +156,7 @@ int main(int argc,char **argv){
 	putchar('\n');
 	putchar('\n');
 
-	Bot:{
-		int botExit;
-		
+	Bot:{		
 		//Initialize bot structure
 		IRCBot_initialize(&bot);
 
@@ -284,7 +175,8 @@ int main(int argc,char **argv){
 		IRCBot_setCommandPrefixc(&bot,'!');
 
 		//While a message is sent from the server
-		ReadLoop: while(bot.exit==IRCBOT_EXIT_FALSE && irc_read_message(bot.connection,&onMessageFunc));
+		int botExit;
+		ReadLoop: while((botExit=IRCBot_waitEvents(&bot))==IRCBOT_EXIT_FALSE);
 
 		if(botExit==IRCBOT_EXIT_RELOADPLUGINS){
 			bot.exit=IRCBOT_EXIT_FALSE;
@@ -308,8 +200,6 @@ int main(int argc,char **argv){
 		if(botExit==IRCBOT_EXIT_RESTART)
 			goto Bot;
 	}
-	
-	exitCode = EXIT_SUCCESS;
 
-	return exitCode;
+	return EXIT_SUCCESS;
 }

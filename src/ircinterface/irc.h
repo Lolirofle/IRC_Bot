@@ -247,7 +247,7 @@ inline void irc_set_username(const irc_connection* connection,const char* userna
 }
 
 /**
- * Joins a channel in a irc connection
+ * Joins a channel in an irc connection
  *
  * @param id      Id of the connection
  * @param channel Channel name
@@ -257,7 +257,7 @@ inline void irc_join_channel(const irc_connection* connection,const char* channe
 }
 
 /**
- * Part from a channel in a irc connection
+ * Part from a channel in an irc connection
  *
  * @param id      Id of the connection
  * @param channel Channel name
@@ -270,7 +270,7 @@ Stringcp irc_parse_message(const irc_connection* connection,Stringcp raw_message
 
 void irc_send_message(const irc_connection* connection,Stringcp target,Stringcp message);
 
-bool irc_read_message(const irc_connection* connection,void(*onMessageFunc)(const irc_connection* connection,const irc_message* message));
+bool irc_read_message(const irc_connection* connection,void* user_data,void(*onMessageFunc)(const irc_connection* connection,const irc_message* message,void* user_data));
 
 /**
  * Read data from the IRC connection and copy it to `out` string.

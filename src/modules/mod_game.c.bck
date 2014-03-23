@@ -18,8 +18,8 @@ bool plugin_onLoad(struct IRCBot* bot){
 	gameCommand=(struct Command){
 		Stringcp_from_cstr("game"),
 		Stringcp_from_cstr("Commands for IRC games"),
-		function(bool,(struct IRCBot* bot,Stringcp target,union CommandArgument* arg){
-			if(arg->free.begin==)
+		function(bool,(struct IRCBot* bot,Stringcp target,struct CommandArgument* arg){
+			if(arg->begin==)
 				IRCBot_sendMessage(bot,target,STRINGCP(TEST_STRING,sizeof(TEST_STRING)));
 			return true;
 		})

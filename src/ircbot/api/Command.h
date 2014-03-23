@@ -2,8 +2,8 @@
 #define __LOLIROFLE_IRCBOT_API_COMMAND_H_INCLUDED__
 
 #include <lolie/Stringp.h>
-#include "CommandArgument.h"
 #include "CommandParameter.h"
+#include "CommandArgument.h"
 struct IRCBot;
 
 /**
@@ -17,7 +17,7 @@ struct Command{
 	Stringcp help;
 
 	//Function that the command executes
-	bool(*func)(struct IRCBot* bot,Stringcp target,union CommandArgument* arg);
+	bool(*func)(struct IRCBot* bot,Stringcp target,struct CommandArgument* args);
 
 	//Parameter data
 	unsigned int parameterCount;

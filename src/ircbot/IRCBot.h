@@ -13,4 +13,6 @@ bool IRCBot_free(struct IRCBot* bot);
 bool IRCBot_connect(struct IRCBot* bot,Stringcp host,unsigned short port);
 bool IRCBot_disconnect(struct IRCBot* bot);
 
+enum IRCBot_Exit IRCBot_waitEvents(struct IRCBot* bot);
+
 #endif

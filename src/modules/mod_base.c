@@ -27,7 +27,7 @@ bool plugin_onLoad(struct IRCBot* bot){
 	c[0]=(struct Command){
 		Stringcp_from_cstr("test"),
 		Stringcp_from_cstr("Test command"),
-		function(bool,(struct IRCBot* bot,Stringcp target,union CommandArgument* arg){
+		function(bool,(struct IRCBot* bot,Stringcp target,struct CommandArgument* arg){
 			#define TEST_STRING "Test command has been executed"
 			IRCBot_sendMessage(bot,target,STRINGCP(TEST_STRING,sizeof(TEST_STRING)));
 			return true;
@@ -36,7 +36,7 @@ bool plugin_onLoad(struct IRCBot* bot){
 	c[1]=(struct Command){
 		Stringcp_from_cstr("version"),
 		Stringcp_from_cstr("Outputs version of bot"),
-		function(bool,(struct IRCBot* bot,Stringcp target,union CommandArgument* arg){
+		function(bool,(struct IRCBot* bot,Stringcp target,struct CommandArgument* arg){
 			IRCBot_sendMessage(bot,target,IRCBot_signature);
 			return true;
 		})
@@ -44,7 +44,7 @@ bool plugin_onLoad(struct IRCBot* bot){
 	c[2]=(struct Command){
 		Stringcp_from_cstr("bot"),
 		Stringcp_from_cstr("Call me"),
-		function(bool,(struct IRCBot* bot,Stringcp target,union CommandArgument* arg){
+		function(bool,(struct IRCBot* bot,Stringcp target,struct CommandArgument* arg){
 			IRCBot_sendMessage(bot,target,STRINGCP("IT'S A ME, TOABOTU",18));
 			return true;
 		})
@@ -52,15 +52,15 @@ bool plugin_onLoad(struct IRCBot* bot){
 	c[3]=(struct Command){
 		Stringcp_from_cstr("echo"),
 		Stringcp_from_cstr("Echoes the arguments"),
-		function(bool,(struct IRCBot* bot,Stringcp target,union CommandArgument* arg){
-			IRCBot_sendMessage(bot,target,STRINGCP(arg->free.begin,arg->free.end-arg->free.begin));
+		function(bool,(struct IRCBot* bot,Stringcp target,struct CommandArgument* arg){
+			IRCBot_sendMessage(bot,target,STRINGCP(arg->begin,arg->end-arg->begin));
 			return true;
 		})
 	};
 	c[4]=(struct Command){
 		Stringcp_from_cstr("help"),
 		Stringcp_from_cstr("Outputs a list of commands and their usage"),
-		function(bool,(struct IRCBot* bot,Stringcp target,union CommandArgument* arg){
+		function(bool,(struct IRCBot* bot,Stringcp target,struct CommandArgument* arg){
 			char* writePtr=write_buffer;
 			char* writeBufferEnd=write_buffer+IRC_WRITE_BUFFER_LEN;
 
@@ -81,7 +81,7 @@ bool plugin_onLoad(struct IRCBot* bot){
 	c[5]=(struct Command){
 		Stringcp_from_cstr("shutdown"),
 		Stringcp_from_cstr("Shutdown the bot"),
-		function(bool,(struct IRCBot* bot,Stringcp target,union CommandArgument* arg){
+		function(bool,(struct IRCBot* bot,Stringcp target,struct CommandArgument* arg){
 			IRCBot_shutdown(bot);
 			IRCBot_sendMessage(bot,target,STRINGCP("Shutting down...",16));
 			return true;
@@ -90,7 +90,7 @@ bool plugin_onLoad(struct IRCBot* bot){
 	c[6]=(struct Command){
 		Stringcp_from_cstr("restart"),
 		Stringcp_from_cstr("Restart the bot"),
-		function(bool,(struct IRCBot* bot,Stringcp target,union CommandArgument* arg){
+		function(bool,(struct IRCBot* bot,Stringcp target,struct CommandArgument* arg){
 			IRCBot_restart(bot);
 			IRCBot_sendMessage(bot,target,STRINGCP("Restarting...",13));
 			return true;
@@ -99,7 +99,7 @@ bool plugin_onLoad(struct IRCBot* bot){
 	c[7]=(struct Command){
 		Stringcp_from_cstr("reload"),
 		Stringcp_from_cstr("Reload the bot"),
-		function(bool,(struct IRCBot* bot,Stringcp target,union CommandArgument* arg){
+		function(bool,(struct IRCBot* bot,Stringcp target,struct CommandArgument* arg){
 			IRCBot_reloadPlugins(bot);
 			IRCBot_sendMessage(bot,target,STRINGCP("Modules is reloaded",19));
 			return true;
@@ -108,23 +108,23 @@ bool plugin_onLoad(struct IRCBot* bot){
 	c[8]=(struct Command){
 		Stringcp_from_cstr("join"),
 		Stringcp_from_cstr("Makes the bot join specified channel"),
-		function(bool,(struct IRCBot* bot,Stringcp target,union CommandArgument* arg){
-			IRCBot_joinChannel(bot,STRINGCP(arg->free.begin,arg->free.end-arg->free.begin));
+		function(bool,(struct IRCBot* bot,Stringcp target,struct CommandArgument* arg){
+			IRCBot_joinChannel(bot,STRINGCP(arg->begin,arg->end-arg->begin));
 			return true;
 		})
 	};
 	c[9]=(struct Command){
 		Stringcp_from_cstr("part"),
 		Stringcp_from_cstr("Makes the bot part from specified channel"),
-		function(bool,(struct IRCBot* bot,Stringcp target,union CommandArgument* arg){
-			IRCBot_partChannel(bot,STRINGCP(arg->free.begin,arg->free.end-arg->free.begin));
+		function(bool,(struct IRCBot* bot,Stringcp target,struct CommandArgument* arg){
+			IRCBot_partChannel(bot,STRINGCP(arg->begin,arg->end-arg->begin));
 			return true;
 		})
 	};
 	c[10]=(struct Command){
 		Stringcp_from_cstr("channels"),
 		Stringcp_from_cstr("List the channels the bot currently resides in"),
-		function(bool,(struct IRCBot* bot,Stringcp target,union CommandArgument* arg){
+		function(bool,(struct IRCBot* bot,Stringcp target,struct CommandArgument* arg){
 			char* writePtr=write_buffer;
 			char* writeBufferEnd=write_buffer+IRC_WRITE_BUFFER_LEN;
 

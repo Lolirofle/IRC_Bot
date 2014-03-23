@@ -10,7 +10,7 @@
 struct irc_connection;
 
 #define IRCBOT_NAME    "Flygande Toalett Toabot"
-#define IRCBOT_VERSION "1.2.1"
+#define IRCBOT_VERSION "1.2.2"
 
 extern const Stringcp IRCBot_signature;
 
@@ -40,10 +40,9 @@ struct IRCBot{
 		LinkedList* onDisconnect;
 		LinkedList* onCommand;
 		LinkedList* onMessage;
+		LinkedList* onMessageSend;
 		LinkedList* onJoin;
 		LinkedList* onPart;
-		LinkedList* onUserJoin;
-		LinkedList* onUserPart;
 	}pluginHooks;
 
 	enum IRCBot_Exit{
@@ -95,7 +94,6 @@ void IRCBot_joinChannel(struct IRCBot* bot,Stringcp channel);
 void IRCBot_partChannel(struct IRCBot* bot,Stringcp channel);
 
 void IRCBot_sendMessage(struct IRCBot* bot,Stringcp target,Stringcp message);
-void IRCBot_sendRaw(struct IRCBot* bot,Stringcp str);
 
  /**
  * Performs a registered command on the bot

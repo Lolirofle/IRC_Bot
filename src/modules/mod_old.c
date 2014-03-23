@@ -27,7 +27,7 @@ bool plugin_onLoad(struct IRCBot* bot){
 	c[0]=(struct Command){
 		Stringcp_from_cstr("test"),
 		Stringcp_from_cstr("Test command"),
-		function(bool,(struct IRCBot* bot,Stringcp target,union CommandArgument* arg){
+		function(bool,(struct IRCBot* bot,Stringcp target,struct CommandArgument* arg){
 			#define TEST_STRING "Test command has been executed"
 			IRCBot_sendMessage(bot,target,STRINGCP(TEST_STRING,sizeof(TEST_STRING)));
 			return true;
@@ -37,7 +37,7 @@ bool plugin_onLoad(struct IRCBot* bot){
 	c[1]=(struct Command){
 		Stringcp_from_cstr("bool"),
 		Stringcp_from_cstr("Outputs true or false randomly"),
-		function(bool,(struct IRCBot* bot,Stringcp target,union CommandArgument* arg){
+		function(bool,(struct IRCBot* bot,Stringcp target,struct CommandArgument* arg){
 			IRCBot_sendMessage(bot,target,locale[language].boolean[rand()%2]);
 			return true;
 		})
@@ -46,7 +46,7 @@ bool plugin_onLoad(struct IRCBot* bot){
 	c[2]=(struct Command){
 		Stringcp_from_cstr("dice"),
 		Stringcp_from_cstr("Roll a dice"),
-		function(bool,(struct IRCBot* bot,Stringcp target,union CommandArgument* arg){
+		function(bool,(struct IRCBot* bot,Stringcp target,struct CommandArgument* arg){
 			write_buffer[0]=rand()%6+'1';
 			IRCBot_sendMessage(bot,target,STRINGCP(write_buffer,1));
 			return true;
@@ -56,11 +56,11 @@ bool plugin_onLoad(struct IRCBot* bot){
 	c[3]=(struct Command){
 		Stringcp_from_cstr("wiki"),
 		Stringcp_from_cstr("Creates a wikipedia link"),
-		function(bool,(struct IRCBot* bot,Stringcp target,union CommandArgument* arg){
+		function(bool,(struct IRCBot* bot,Stringcp target,struct CommandArgument* arg){
 			int len = Stringp_vcopy(STRINGP(write_buffer,IRC_WRITE_BUFFER_LEN),1,
 				Stringcp_from_cstr("http://en.wikipedia.org/wiki/")
 			);
-			len+=url_encode(STRINGCP(arg->free.begin,arg->free.end-arg->free.begin),STRINGP(write_buffer+len,IRC_WRITE_BUFFER_LEN-len));
+			len+=url_encode(STRINGCP(arg->begin,arg->end-arg->begin),STRINGP(write_buffer+len,IRC_WRITE_BUFFER_LEN-len));
 			IRCBot_sendMessage(bot,target,STRINGCP(write_buffer,len));
 			return true;
 		})
@@ -69,11 +69,11 @@ bool plugin_onLoad(struct IRCBot* bot){
 	c[4]=(struct Command){
 		Stringcp_from_cstr("imdb"),
 		Stringcp_from_cstr("Creates a IMDb search link"),
-		function(bool,(struct IRCBot* bot,Stringcp target,union CommandArgument* arg){
+		function(bool,(struct IRCBot* bot,Stringcp target,struct CommandArgument* arg){
 			int len = Stringp_vcopy(STRINGP(write_buffer,IRC_WRITE_BUFFER_LEN),1,
 				Stringp_from_cstr("http://www.imdb.com/find?s=all&q=")
 			);
-			len+=url_encode(STRINGCP(arg->free.begin,arg->free.end-arg->free.begin),STRINGP(write_buffer+len,IRC_WRITE_BUFFER_LEN-len));
+			len+=url_encode(STRINGCP(arg->begin,arg->end-arg->begin),STRINGP(write_buffer+len,IRC_WRITE_BUFFER_LEN-len));
 			IRCBot_sendMessage(bot,target,STRINGCP(write_buffer,len));
 			return true;
 		})
@@ -82,7 +82,7 @@ bool plugin_onLoad(struct IRCBot* bot){
 	c[5]=(struct Command){
 		Stringcp_from_cstr("date"),
 		Stringcp_from_cstr(""),
-		function(bool,(struct IRCBot* bot,Stringcp target,union CommandArgument* arg){
+		function(bool,(struct IRCBot* bot,Stringcp target,struct CommandArgument* arg){
 			time_t t;time(&t);
 			struct tm* time_data = localtime(&t);
 
@@ -96,13 +96,13 @@ bool plugin_onLoad(struct IRCBot* bot){
 	c[6]=(struct Command){
 		Stringcp_from_cstr("upper"),
 		Stringcp_from_cstr(""),
-		function(bool,(struct IRCBot* bot,Stringcp target,union CommandArgument* arg){
+		function(bool,(struct IRCBot* bot,Stringcp target,struct CommandArgument* arg){
 			char* write_ptr = write_buffer;
-			size_t argLen=arg->free.end-arg->free.begin;
+			size_t argLen=arg->end-arg->begin;
 
-			while(arg->free.begin<arg->free.end){
-				*write_ptr++=*arg->free.begin>='a' && *arg->free.begin<='z'?(*arg->free.begin)+('A'-'a'):*arg->free.begin;
-				++arg->free.begin;
+			while(arg->begin<arg->end){
+				*write_ptr++=*arg->begin>='a' && *arg->begin<='z'?(*arg->begin)+('A'-'a'):*arg->begin;
+				++arg->begin;
 			}
 
 			IRCBot_sendMessage(bot,target,STRINGCP(write_buffer,argLen));
@@ -113,13 +113,13 @@ bool plugin_onLoad(struct IRCBot* bot){
 	c[7]=(struct Command){
 		Stringcp_from_cstr("lower"),
 		Stringcp_from_cstr(""),
-		function(bool,(struct IRCBot* bot,Stringcp target,union CommandArgument* arg){
+		function(bool,(struct IRCBot* bot,Stringcp target,struct CommandArgument* arg){
 			char* write_ptr = write_buffer;
-			size_t argLen=arg->free.end-arg->free.begin;
+			size_t argLen=arg->end-arg->begin;
 
-			while(arg->free.begin<arg->free.end){
-				*write_ptr++=*arg->free.begin>='A' && *arg->free.begin<='Z'?(*arg->free.begin)+('a'-'A'):*arg->free.begin;
-				++arg->free.begin;
+			while(arg->begin<arg->end){
+				*write_ptr++=*arg->begin>='A' && *arg->begin<='Z'?(*arg->begin)+('a'-'A'):*arg->begin;
+				++arg->begin;
 			}
 
 			IRCBot_sendMessage(bot,target,STRINGCP(write_buffer,argLen));
@@ -130,20 +130,20 @@ bool plugin_onLoad(struct IRCBot* bot){
 	c[8]=(struct Command){
 		Stringcp_from_cstr("rot13"),
 		Stringcp_from_cstr(""),
-		function(bool,(struct IRCBot* bot,Stringcp target,union CommandArgument* arg){
+		function(bool,(struct IRCBot* bot,Stringcp target,struct CommandArgument* arg){
 			char* write_ptr = write_buffer;
-			size_t argLen=arg->free.end-arg->free.begin;
+			size_t argLen=arg->end-arg->begin;
 
-			while(arg->free.begin<arg->free.end){
-				if(*arg->free.begin>='A' && *arg->free.begin<='Z')
-					*write_ptr++=((*arg->free.begin)-'A'+13)%26+'A';
-				else if(*arg->free.begin>='a' && *arg->free.begin<='z')
-					*write_ptr++=((*arg->free.begin)-'a'+13)%26+'a';
-				else if(*arg->free.begin>='0' && *arg->free.begin<='9')
-					*write_ptr++=((*arg->free.begin)-'0'+5)%10+'0';
+			while(arg->begin<arg->end){
+				if(*arg->begin>='A' && *arg->begin<='Z')
+					*write_ptr++=((*arg->begin)-'A'+13)%26+'A';
+				else if(*arg->begin>='a' && *arg->begin<='z')
+					*write_ptr++=((*arg->begin)-'a'+13)%26+'a';
+				else if(*arg->begin>='0' && *arg->begin<='9')
+					*write_ptr++=((*arg->begin)-'0'+5)%10+'0';
 				else
-					*write_ptr++=*arg->free.begin;
-				++arg->free.begin;
+					*write_ptr++=*arg->begin;
+				++arg->begin;
 			}
 
 			IRCBot_sendMessage(bot,target,STRINGCP(write_buffer,argLen));
@@ -154,16 +154,16 @@ bool plugin_onLoad(struct IRCBot* bot){
 	c[9]=(struct Command){
 		Stringcp_from_cstr("rot47"),
 		Stringcp_from_cstr(""),
-		function(bool,(struct IRCBot* bot,Stringcp target,union CommandArgument* arg){
+		function(bool,(struct IRCBot* bot,Stringcp target,struct CommandArgument* arg){
 			char* write_ptr = write_buffer;
-			size_t argLen=arg->free.end-arg->free.begin;
+			size_t argLen=arg->end-arg->begin;
 
-			while(arg->free.begin<arg->free.end){
-				if(*arg->free.begin>='!' && *arg->free.begin<='~')
-					*write_ptr++=((*arg->free.begin)-'!'+47)%94+'!';
+			while(arg->begin<arg->end){
+				if(*arg->begin>='!' && *arg->begin<='~')
+					*write_ptr++=((*arg->begin)-'!'+47)%94+'!';
 				else
-					*write_ptr++=*arg->free.begin;
-				++arg->free.begin;
+					*write_ptr++=*arg->begin;
+				++arg->begin;
 			}
 
 			IRCBot_sendMessage(bot,target,STRINGCP(write_buffer,argLen));
@@ -175,24 +175,24 @@ bool plugin_onLoad(struct IRCBot* bot){
 	c[10]=(struct Command){
 		Stringcp_from_cstr("random"),
 		Stringcp_from_cstr(""),
-		function(bool,(struct IRCBot* bot,Stringcp target,union CommandArgument* arg){
+		function(bool,(struct IRCBot* bot,Stringcp target,struct CommandArgument* arg){
 			unsigned int value=rand();
 			unsigned int min=1;
 			unsigned int max=RAND_MAX;
-			const char* read_ptr=arg->free.begin;
+			const char* read_ptr=arg->begin;
 
-			if(arg->free.end-arg->free.begin>0)//If argument 1 exists (random <max>)
+			if(arg->end-arg->begin>0)//If argument 1 exists (random <max>)
 				while(true)
-					if(read_ptr>arg->free.begin && (read_ptr>=arg->free.end || read_ptr[0]==' ')){
-						max=decStrToInt(arg->free.begin,MIN(read_ptr-arg->free.begin,9));
-						arg->free.begin=++read_ptr;
+					if(read_ptr>arg->begin && (read_ptr>=arg->end || read_ptr[0]==' ')){
+						max=decStrToInt(arg->begin,MIN(read_ptr-arg->begin,9));
+						arg->begin=++read_ptr;
 
-						if(arg->free.end-arg->free.begin>0)//If argument 2 exists (random <min> <max>)
+						if(arg->end-arg->begin>0)//If argument 2 exists (random <min> <max>)
 							while(true)
-								if(read_ptr>arg->free.begin && (read_ptr>=arg->free.end || read_ptr[0]==' ')){
+								if(read_ptr>arg->begin && (read_ptr>=arg->end || read_ptr[0]==' ')){
 									min=max;
-									max=decStrToInt(arg->free.begin,MIN(read_ptr-arg->free.begin,9));
-									arg->free.begin=++read_ptr;
+									max=decStrToInt(arg->begin,MIN(read_ptr-arg->begin,9));
+									arg->begin=++read_ptr;
 									break;
 								}
 								else if(read_ptr[0]>='0' && read_ptr[0]<='9')
@@ -214,8 +214,8 @@ bool plugin_onLoad(struct IRCBot* bot){
 	c[11]=(struct Command){
 		Stringcp_from_cstr("choose"),
 		Stringcp_from_cstr(""),
-		function(bool,(struct IRCBot* bot,Stringcp target,union CommandArgument* arg){
-			if(arg->free.begin>=arg->free.end){
+		function(bool,(struct IRCBot* bot,Stringcp target,struct CommandArgument* arg){
+			if(arg->begin>=arg->end){
 				IRCBot_sendMessage(bot,target,locale[language].missing_argument);
 				return false;
 			}
@@ -223,7 +223,7 @@ bool plugin_onLoad(struct IRCBot* bot){
 			LinkedList* list = LinkedList_init;
 			size_t list_length = 0;
 
-			string_splitted(STRINGP(arg->free.begin,arg->free.end-arg->free.begin),function(size_t,(Stringp str){
+			string_splitted(STRINGP(arg->begin,arg->end-arg->begin),function(size_t,(Stringp str){
 				if(str.length>=1 && (*str.ptr=='|' || *str.ptr==',')){
 					unsigned short whitespaces=1;
 					while(str.length>0 && *++str.ptr==' ')
@@ -260,8 +260,8 @@ bool plugin_onLoad(struct IRCBot* bot){
 	c[12]=(struct Command){
 		Stringcp_from_cstr("length"),
 		Stringcp_from_cstr(""),
-		function(bool,(struct IRCBot* bot,Stringcp target,union CommandArgument* arg){
-			int len=snprintf(write_buffer,IRC_WRITE_BUFFER_LEN,"%li",arg->free.end-arg->free.begin);
+		function(bool,(struct IRCBot* bot,Stringcp target,struct CommandArgument* arg){
+			int len=snprintf(write_buffer,IRC_WRITE_BUFFER_LEN,"%li",arg->end-arg->begin);
 			IRCBot_sendMessage(bot,target,STRINGCP(write_buffer,len));
 			return true;
 		})
@@ -270,11 +270,11 @@ bool plugin_onLoad(struct IRCBot* bot){
 	c[13]=(struct Command){
 		Stringcp_from_cstr("google"),
 		Stringcp_from_cstr(""),
-		function(bool,(struct IRCBot* bot,Stringcp target,union CommandArgument* arg){
+		function(bool,(struct IRCBot* bot,Stringcp target,struct CommandArgument* arg){
 			int len = Stringp_vcopy(STRINGP(write_buffer,IRC_WRITE_BUFFER_LEN),1,
 				Stringp_from_cstr("https://www.google.com/search?q=")
 			);
-			len+=url_encode(STRINGCP(arg->free.begin,arg->free.end-arg->free.begin),STRINGP(write_buffer+len,IRC_WRITE_BUFFER_LEN-len));
+			len+=url_encode(STRINGCP(arg->begin,arg->end-arg->begin),STRINGP(write_buffer+len,IRC_WRITE_BUFFER_LEN-len));
 			IRCBot_sendMessage(bot,target,STRINGCP(write_buffer,len));
 			return true;
 		})
@@ -283,18 +283,18 @@ bool plugin_onLoad(struct IRCBot* bot){
 	c[14]=(struct Command){
 		Stringcp_from_cstr("prefix"),
 		Stringcp_from_cstr(""),
-		function(bool,(struct IRCBot* bot,Stringcp target,union CommandArgument* arg){
-			int len = arg->free.end-arg->free.begin;
+		function(bool,(struct IRCBot* bot,Stringcp target,struct CommandArgument* arg){
+			int len = arg->end-arg->begin;
 			int write_len;
 
 			if(len>0){
 				free(bot->commandPrefix.ptr);
 				bot->commandPrefix = STRINGP(smalloc(len),len);
-				memcpy(bot->commandPrefix.ptr,arg->free.begin,len);
+				memcpy(bot->commandPrefix.ptr,arg->begin,len);
 				write_len = Stringp_vcopy(STRINGP(write_buffer,IRC_WRITE_BUFFER_LEN),4,
 					locale[language].prefix.set,
 					STRINGCP(" \"",2),
-					STRINGCP(arg->free.begin,len),
+					STRINGCP(arg->begin,len),
 					STRINGCP("\"",1)
 				);
 			}else{
@@ -313,13 +313,13 @@ bool plugin_onLoad(struct IRCBot* bot){
 	c[15]=(struct Command){
 		Stringcp_from_cstr("reverse"),
 		Stringcp_from_cstr(""),
-		function(bool,(struct IRCBot* bot,Stringcp target,union CommandArgument* arg){
+		function(bool,(struct IRCBot* bot,Stringcp target,struct CommandArgument* arg){
 			char* write_ptr = write_buffer;
-			const char* read_ptr = arg->free.end;
+			const char* read_ptr = arg->end;
 
-			while(read_ptr>arg->free.begin)
+			while(read_ptr>arg->begin)
 				*write_ptr++=*--read_ptr;
-			IRCBot_sendMessage(bot,target,STRINGCP(write_buffer,arg->free.end-arg->free.begin));
+			IRCBot_sendMessage(bot,target,STRINGCP(write_buffer,arg->end-arg->begin));
 			return true;
 		})
 	};
@@ -327,9 +327,9 @@ bool plugin_onLoad(struct IRCBot* bot){
 	c[16]=(struct Command){
 		Stringcp_from_cstr("language"),
 		Stringcp_from_cstr(""),
-		function(bool,(struct IRCBot* bot,Stringcp target,union CommandArgument* arg){
+		function(bool,(struct IRCBot* bot,Stringcp target,struct CommandArgument* arg){
 			for(unsigned int i=0;i<LANG_COUNT;++i)
-				if(memcmp(locale[i].lang_name.ptr,arg->free.begin,locale[i].lang_name.length)==0){
+				if(memcmp(locale[i].lang_name.ptr,arg->begin,locale[i].lang_name.length)==0){
 					language=i;
 					IRCBot_sendMessage(bot,target,locale[language].language.set);		
 					return true;
@@ -342,13 +342,13 @@ bool plugin_onLoad(struct IRCBot* bot){
 	c[17]=(struct Command){
 		Stringcp_from_cstr("wordcount"),
 		Stringcp_from_cstr(""),
-		function(bool,(struct IRCBot* bot,Stringcp target,union CommandArgument* arg){
+		function(bool,(struct IRCBot* bot,Stringcp target,struct CommandArgument* arg){
 			unsigned int count=0;
 
-			if(arg->free.begin<arg->free.end){
+			if(arg->begin<arg->end){
 				count=1;
-				while(arg->free.begin<arg->free.end)
-					if(*arg->free.begin++==' ')//TODO: The ability to count complex sentences
+				while(arg->begin<arg->end)
+					if(*arg->begin++==' ')//TODO: The ability to count complex sentences
 						++count;
 			}
 
@@ -361,8 +361,8 @@ bool plugin_onLoad(struct IRCBot* bot){
 	c[18]=(struct Command){
 		Stringcp_from_cstr("urlencode"),
 		Stringcp_from_cstr(""),
-		function(bool,(struct IRCBot* bot,Stringcp target,union CommandArgument* arg){
-			IRCBot_sendMessage(bot,target,STRINGCP(write_buffer,url_encode(STRINGCP(arg->free.begin,arg->free.end-arg->free.begin),STRINGP(write_buffer,IRC_WRITE_BUFFER_LEN))));
+		function(bool,(struct IRCBot* bot,Stringcp target,struct CommandArgument* arg){
+			IRCBot_sendMessage(bot,target,STRINGCP(write_buffer,url_encode(STRINGCP(arg->begin,arg->end-arg->begin),STRINGP(write_buffer,IRC_WRITE_BUFFER_LEN))));
 			return true;
 		})
 	};
@@ -370,9 +370,9 @@ bool plugin_onLoad(struct IRCBot* bot){
 	c[19]=(struct Command){//TODO: magic8ball isn't in the help listing
 		Stringcp_from_cstr("magic8ball"),
 		Stringcp_from_cstr(""),
-		function(bool,(struct IRCBot* bot,Stringcp target,union CommandArgument* arg){
+		function(bool,(struct IRCBot* bot,Stringcp target,struct CommandArgument* arg){
 			unsigned short len=0;
-			if(arg->free.end-arg->free.begin<2 || *(arg->free.end-1)!='?'){
+			if(arg->end-arg->begin<2 || *(arg->end-1)!='?'){
 				len=locale[language].magic8ball.ask.length;  memcpy(write_buffer,locale[language].magic8ball.ask.ptr,len);
 			}else{
 				switch(rand()%20){
@@ -409,7 +409,7 @@ bool plugin_onLoad(struct IRCBot* bot){
 	c[]=(struct Command){
 		Stringcp_from_cstr(""),
 		Stringcp_from_cstr(""),
-		function(bool,(struct IRCBot* bot,Stringcp target,union CommandArgument* arg){
+		function(bool,(struct IRCBot* bot,Stringcp target,struct CommandArgument* arg){
 			return true;
 		})
 	};
