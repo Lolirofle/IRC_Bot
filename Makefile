@@ -47,10 +47,10 @@ debug: $(OUT_LIB)
 debug: $(OUT_BIN)
 
 $(OBJDIR)/$(SRCDIR_BIN)/%.o: $(SRCDIR_BIN)/%.c
-	$(CC) -I$(SRCDIR)/ -I$(SRCDIR)/$(SRCDIR_BIN) $(CFLAGS) $(CFLAGS_BIN) -o $@ -c $<
+	$(CC) -I$(SRCDIR)/ $(CFLAGS) $(CFLAGS_BIN) -o $@ -c $<
 
 $(OBJDIR)/$(SRCDIR_LIB)/%.o: $(SRCDIR_LIB)/%.c
-	$(CC) -I$(SRCDIR)/$(SRCDIR_LIB) $(CFLAGS) $(CFLAGS_LIB) -o $@ -c $<
+	$(CC)  $(CFLAGS) $(CFLAGS_LIB) -o $@ -c $<
 
 clean:
 	rm -f $(OBJECTS_BIN) $(OBJECTS_LIB) $(BINDIR)/$(OUTPREFIX_BIN)$(OUT_BIN)$(OUTPOSTFIX_BIN) $(BINDIR)/$(OUTPREFIX_LIB)$(OUT_LIB)$(OUTPOSTFIX_LIB)

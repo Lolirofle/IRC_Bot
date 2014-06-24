@@ -10,7 +10,7 @@
 #include "api/CommandArgument.h"
 #include <lolie/Stringp.h>
 #include <lolie/String.h>
-#include <lolie/ControlStructures.h>
+#include <lolien/controlstructures.h>
 
 //If TIMESTAMP is defined, use it in the version signature
 #ifdef TIMESTAMP

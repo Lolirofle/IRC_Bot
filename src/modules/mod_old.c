@@ -5,7 +5,7 @@
 #include <ircbot/api/Command.h>
 #include <ircbot/api/Commands.h>
 #include <ircbot/Locale.h>
-#include <lolie/TypeAliases.h>
+#include <lolien/types.h>
 #include <lolie/Memory.h>
 #include <lolie/Stringp.h>
 #include <lolie/url.h>

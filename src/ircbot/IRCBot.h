@@ -3,7 +3,7 @@
 
 #include "api/IRCBot.h"
 
-#include <lolie/TypeAliases.h>
+#include <lolien/types.h>
 #include <lolie/Stringp.h>
 #include "ircinterface/irc.h"
 

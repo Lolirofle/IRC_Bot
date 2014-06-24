@@ -3,7 +3,7 @@
 
 #include <lolie/Stringp.h>
 #include <lolie/LinkedList.h>
-#include <lolie/Essentials.h>
+
 size_t strlen(const char* str);
 
 #define IRC_BUFFER_LENGTH 512

@@ -2,7 +2,7 @@
 #define __LOLIROFLE_IRCBOT_API_COMMANDPARAMETER_H_INCLUDED__
 
 #include <lolie/Stringp.h>
-#include <lolie/TypeAliases.h>
+#include <lolien/types.h>
 
 /**
  * Represents the type of requirement this parameter has

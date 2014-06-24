@@ -8,7 +8,7 @@
 #include <ircbot/api/IRCBot.h>
 #include <ircbot/api/Command.h>
 #include <ircbot/api/Commands.h>
-#include <lolie/TypeAliases.h>
+#include <lolien/types.h>
 #include <lolie/DynamicArray.h>
 #include <lolie/String.h>
 #include <lolie/Stringp.h>

@@ -2,7 +2,7 @@
 #define __LOLIROFLE_IRCBOT_API_PLUGIN_H_INCLUDED__
 
 #include <lolie/LinkedList.h>
-#include <lolie/TypeAliases.h>
+#include <lolien/types.h>
 #include <lolie/Stringp.h>
 struct IRCBot;
 struct CommandArgument;

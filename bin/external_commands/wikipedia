@@ -1,0 +1,62 @@
+#!/usr/bin/python
+
+import sys
+import codecs
+import wikipedia
+import sqlite3
+
+# Database tools. Mainly used for caching the results from data fetching
+def dbLookupEntry(db,title):
+	returnValue = None
+
+	try:
+		db.execute('SELECT content FROM wiki_entries WHERE title=?',(title,))
+		returnValue = db.fetchone()
+		if returnValue:
+			returnValue = returnValue[0]
+	except sqlite3.OperationalError as e:
+		if e.args[0].startswith("no such table"):
+			# Create table if it doesn't exist
+			db.execute('''CREATE TABLE wiki_entries (id INTEGER PRIMARY KEY AUTOINCREMENT,title TEXT UNIQUE,content TEXT,last_update TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
+			connection.commit()
+
+			return dbLookupEntry(db,title)
+		else:
+			raise e
+
+	return returnValue
+
+def dbInsertEntry(db,title,content):
+	db.execute("INSERT INTO wiki_entries (title,content) VALUES (?,?)",(title,content))
+	connection.commit()
+
+
+
+sys.stdin = codecs.getreader("utf-8")(sys.stdin)
+search = sys.stdin.read()
+
+# Open connection to db and initiate
+connection = sqlite3.connect('wikipedia.db')
+connection.text_factory = str
+db = connection.cursor()
+
+# Lookup the entry in the db
+output = dbLookupEntry(db,search)
+
+# If the db lookup failed in some way (Entry not found or whatever reason)
+if not output:
+	try:
+		# Lookup a summary of the article on Wikipedia
+		output = unicode(wikipedia.summary(search,sentences=2)).encode('utf8')
+	except wikipedia.exceptions.DisambiguationError as e:
+		# In case of a ambiguity, list the different options
+		output = unicode('"' + search + "\" may refer to: " + ", ".join(e.options)).encode('utf8')
+	finally:
+		# Finally, insert the fetched data from Wikipedia to our database
+		dbInsertEntry(db,search,output)
+
+# Print out the data to the user
+print output
+
+# Close connection to db when finished
+connection.close()

@@ -8,7 +8,7 @@
 #include <ircbot/api/Command.h>
 #include <ircbot/api/Commands.h>
 #include <ircbot/pipes.h>
-#include <lolie/TypeAliases.h>
+#include <lolien/types.h>
 #include <lolie/Stringp.h>
 
 const char plugin_version[] ="1.2";

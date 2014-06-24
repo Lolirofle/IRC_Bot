@@ -8,7 +8,7 @@
 #include <lolie/Stringp.h>//Null terminatd Stringp operations
 #include <lolie/Memory.h>//memeq
 #include <lolie/LinkedList.h>
-#include <lolie/ControlStructures.h>
+#include <lolien/controlstructures.h>
 #include <lolie/Math.h>
 
 #include <unistd.h>//Unix standard library

@@ -1,7 +1,7 @@
 #ifndef __LOLIROFLE_IRCBOT_IRCBOT_ERROR_H_INCLUDED__
 #define __LOLIROFLE_IRCBOT_IRCBOT_ERROR_H_INCLUDED__
 
-#include <lolie/TypeAliases.h>
+#include <lolien/types.h>
 #include <lolie/Stringp.h>
 
 struct IRCBot_Error{

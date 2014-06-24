@@ -1,0 +1,9 @@
+#!/usr/bin/python
+
+import sys
+import codecs
+import wikipedia
+
+sys.stdin = codecs.getreader("utf-8")(sys.stdin)
+
+print unicode(", ".join(wikipedia.search(sys.stdin.read()))).encode('utf8')

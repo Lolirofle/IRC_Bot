@@ -5,7 +5,7 @@
 #include <lolie/Stringp.h>
 #include <lolie/Memory.h>
 #include <lolie/Math.h>
-#include <lolie/ControlStructures.h>
+#include <lolien/controlstructures.h>
 
 #include "Commands.h"
 #include "IRCBot.h"
