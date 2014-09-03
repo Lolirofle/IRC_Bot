@@ -4,7 +4,7 @@
 #include <ircbot/api/Command.h>
 #include <ircbot/api/Commands.h>
 #include <lolien/types.h>
-#include <lolie/Stringp.h>
+#include <lolien/seq/StringP.h>
 #include "mod_game.h"
 
 const char plugin_version[] = "1.0";
@@ -16,9 +16,9 @@ static LinkedList/*<struct ToaModule_GameSession*>*/* gameSessions = LinkedList_
 
 bool plugin_onLoad(struct IRCBot* bot){
 	gameCommand=(struct Command){
-		Stringcp_from_cstr("game"),
-		Stringcp_from_cstr("Commands for IRC games"),
-		function(bool,(struct IRCBot* bot,Stringcp target,struct CommandArgument* arg){
+		StringCP_fromCStr("game"),
+		StringCP_fromCStr("Commands for IRC games"),
+		function(bool,(struct IRCBot* bot,StringCP target,struct CommandArgument* arg){
 			if(arg->begin==)
 				IRCBot_sendMessage(bot,target,STRINGCP(TEST_STRING,sizeof(TEST_STRING)));
 			return true;

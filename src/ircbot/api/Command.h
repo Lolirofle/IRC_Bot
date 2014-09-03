@@ -1,7 +1,7 @@
 #ifndef __LOLIROFLE_IRCBOT_API_COMMAND_H_INCLUDED__
 #define __LOLIROFLE_IRCBOT_API_COMMAND_H_INCLUDED__
 
-#include <lolie/Stringp.h>
+#include <lolien/seq/StringP.h>
 #include "CommandParameter.h"
 #include "CommandArgument.h"
 struct IRCBot;
@@ -11,13 +11,13 @@ struct IRCBot;
  */
 struct Command{
 	//Name of the command (Call name)
-	Stringcp name;
+	StringCP name;
 
 	//Help string
-	Stringcp help;
+	StringCP help;
 
 	//Function that the command executes
-	bool(*func)(struct IRCBot* bot,Stringcp target,struct CommandArgument* args);
+	bool(*func)(struct IRCBot* bot,StringCP target,struct CommandArgument* args);
 
 	//Parameter data
 	unsigned int parameterCount;

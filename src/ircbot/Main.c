@@ -1,10 +1,9 @@
 #include <stdio.h> //Input/output
 #include <string.h>
 #include <argp.h>
+#include <libconfig.h>
 
-#include <lolie/Stringp.h>
-#include <lolie/Memory.h>
-#include <lolie/Math.h>
+#include <lolien/seq/StringP.h>
 #include <lolien/controlstructures.h>
 
 #include "Commands.h"
@@ -20,7 +19,7 @@
 //TODO: Split message struct to server_message and client_message where server message is messages from the server
 
 //TODO: Remove when the parameter API is correctly implemented
-Stringp string_splitted(Stringp str,size_t(*delimiterFunc)(Stringp str),bool(*onSplitFunc)(const char* begin,const char* end)){
+StringP string_splitted(StringP str,size_t(*delimiterFunc)(StringP str),bool(*onSplitFunc)(const char* begin,const char* end)){
 	const char* arg_begin=str.ptr;
 
 	loop{
@@ -58,9 +57,15 @@ static struct argp_option program_arg_options[] = {
 };
 
 struct program_options{
-	char* hostname;
-	char* nickname;
-	char* channel;
+	const char* configPath;
+	const char* hostname;
+	const char* nickname;
+	const char* username;
+	const char* realname;
+	const char* channel;
+	const char* joinmessage;
+	const char* partmessage;
+	const char* quitmessage;
 	unsigned int port;
 	enum irc_connection_verbosity verbosity;
 }options;
@@ -124,19 +129,69 @@ static struct argp program_argp = {
 struct IRCBot bot;
 
 int main(int argc,char **argv){	
+	struct program_options options;
+
+	/////////////////////////////////////////////////////////
+	// Program config
+	//
+	config_t configuration;{
+		//Initialize config
+		config_init(&config.configuration);
+
+		//Read from file
+		if(!config_read_file(&configuration,"toabot.conf")){
+			fprintf(stderr,"Error: Configuration file: %s:%d: %s\n",config_error_file(&configuration),config_error_line(&configuration),config_error_text(&configuration));
+			config_destroy(&configuration);
+			return EXIT_FAILURE;
+		}
+
+		config_setting_t* settings;
+		settings = config_root_setting(&configuration);
+
+		//Read settings
+		config_setting_t* setting;
+		
+		if(setting = config_setting_get_member(settings,"nickname"))
+			options.nickname = config_setting_get_string(setting);
+
+		if(setting = config_setting_get_member(settings,"username"))
+			options.username = config_setting_get_string(setting);
+
+		if(setting = config_setting_get_member(settings,"realname"))
+			options.realname = config_setting_get_string(setting);
+
+		if(setting = config_setting_get_member(settings,"channel"))
+			options.channel = config_setting_get_string(setting);
+
+		if(setting = config_setting_get_member(settings,"hostname"))
+			options.hostname = config_setting_get_string(setting);
+
+		if(setting = config_setting_get_member(settings,"port"))
+			options.port = config_setting_get_int(setting);
+
+		if(setting = config_setting_get_member(settings,"joinmessage"))
+			options.joinmessage = config_setting_get_string(setting);
+
+		if(setting = config_setting_get_member(settings,"partmessage"))
+			options.partmessage = config_setting_get_string(setting);
+
+		if(setting = config_setting_get_member(settings,"quitmessage"))
+			options.quitmessage = config_setting_get_string(setting);
+	}
+
 	/////////////////////////////////////////////////////////
 	// Program arguments
 	//
-
-	//Default options
-	struct program_options options = {
-		.nickname = "Toabot",
-		.channel = NULL,
-		.port = 6667,
-		.verbosity = IRCINTERFACE_VERBOSITY_NORMAL
-	};
-
 	argp_parse(&program_argp,argc,argv,0,0,&options);
+
+	/////////////////////////////////////////////////////////
+	// Program default options
+	//
+	if(!options.nickname)options.nickname = "Toabot";
+	if(!options.username)options.username = options.nickname;
+	if(!options.realname)options.realname = options.nickname;
+	if(!options.channel) options.channel  = NULL;
+	if(options.port==0)  options.port     = 6667;
 
 	/////////////////////////////////////////////////////////
 	// Begin main program
@@ -165,13 +220,12 @@ int main(int argc,char **argv){
 			fputs("Warning: Failed to initialize modules\n",stderr);
 
 		//Connect to server
-		IRCBot_connect(&bot,Stringcp_from_cstr(options.hostname),options.port);
+		IRCBot_connect(&bot,StringCP_fromCStr(options.hostname),options.port);
 		bot.connection->verbosity = options.verbosity;
 		bot.connection->initial_channel = options.channel;
 
-		Stringcp name=Stringcp_from_cstr(options.nickname);
-		IRCBot_setNickname(&bot,name);
-		IRCBot_setUsername(&bot,name);
+		IRCBot_setNickname(&bot,StringCP_fromCStr(options.nickname));
+		IRCBot_setUsername(&bot,StringCP_fromCStr(options.username));
 		IRCBot_setCommandPrefixc(&bot,'!');
 
 		//While a message is sent from the server
@@ -199,6 +253,8 @@ int main(int argc,char **argv){
 
 		if(botExit==IRCBOT_EXIT_RESTART)
 			goto Bot;
+
+		config_destroy(&configuration);
 	}
 
 	return EXIT_SUCCESS;

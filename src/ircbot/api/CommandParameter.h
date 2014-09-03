@@ -1,7 +1,7 @@
 #ifndef __LOLIROFLE_IRCBOT_API_COMMANDPARAMETER_H_INCLUDED__
 #define __LOLIROFLE_IRCBOT_API_COMMANDPARAMETER_H_INCLUDED__
 
-#include <lolie/Stringp.h>
+#include <lolien/seq/StringP.h>
 #include <lolien/types.h>
 
 /**
@@ -27,8 +27,8 @@ enum CommandParameterRequirement{
 };
 
 struct CommandParameterType{
-	Stringp name;
-	Stringp description;
+	StringP name;
+	StringP description;
 	enum CommandParameterParserReturn{
 		COMMANDPARAMETERPARSER_SUCCESS,
 		COMMANDPARAMETERPARSER_PARSEERROR,
@@ -36,8 +36,8 @@ struct CommandParameterType{
 };
 
 struct CommandParameter{
-	Stringp name;
-	Stringp description;
+	StringP name;
+	StringP description;
 	enum CommandParameterRequirement requirement;
 
 	const struct CommandParameterType* type;

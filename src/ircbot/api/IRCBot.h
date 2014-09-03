@@ -2,9 +2,9 @@
 #define __LOLIROFLE_IRCBOT_API_IRCBOT_H_INCLUDED__
 
 #include <lolien/types.h>
-#include <lolie/Stringp.h>
-#include <lolie/DynamicArray.h>
-#include <lolie/LinkedList.h>
+#include <lolien/seq/StringP.h>
+#include <lolien/seq/DynamicArray.h>
+#include <lolien/seq/LinkedList.h>
 #include "IRCBot_Error.h"
 #include "Plugin.h"
 struct irc_connection;
@@ -12,7 +12,7 @@ struct irc_connection;
 #define IRCBOT_NAME    "Flygande Toalett Toabot"
 #define IRCBOT_VERSION "1.2.2"
 
-extern const Stringcp IRCBot_signature;
+extern const StringCP IRCBot_signature;
 
 /**
  * Buffer initialization
@@ -22,16 +22,16 @@ char write_buffer[IRC_WRITE_BUFFER_LEN];
 
 struct IRCBot{
 	struct irc_connection* connection;
-	Stringp hostname;
-	Stringp nickname;
-	Stringp username;
-	Stringp realname;
+	StringP hostname;
+	StringP nickname;
+	StringP username;
+	StringP realname;
 	bool connected;
 	struct IRCBot_Error error;
 	LinkedList/*<const String*>*/* channels;
 
-	Stringp commandPrefix;
-	struct DynamicArray/*<LinkedList<struct Command*>*>*/ commands;
+	StringP commandPrefix;
+	DynamicArray/*<DynamicArray<struct Command*>>*/ commands;
 
 	LinkedList/*<struct Plugin*>*/* plugins;
 
@@ -83,17 +83,17 @@ struct IRCBot{
 #define IRCBot_reloadPlugins(bot) ((bot)->exit=IRCBOT_EXIT_RELOADPLUGINS)
 
 //IRCBot must be connected for these functions
-void IRCBot_setNickname(struct IRCBot* bot,Stringcp name);
-void IRCBot_setUsername(struct IRCBot* bot,Stringcp name);
-void IRCBot_setRealname(struct IRCBot* bot,Stringcp name);
+void IRCBot_setNickname(struct IRCBot* bot,StringCP name);
+void IRCBot_setUsername(struct IRCBot* bot,StringCP name);
+void IRCBot_setRealname(struct IRCBot* bot,StringCP name);
 
-void IRCBot_setCommandPrefix(struct IRCBot* bot,Stringcp prefix);
+void IRCBot_setCommandPrefix(struct IRCBot* bot,StringCP prefix);
 void IRCBot_setCommandPrefixc(struct IRCBot* bot,char prefix);
 
-void IRCBot_joinChannel(struct IRCBot* bot,Stringcp channel);
-void IRCBot_partChannel(struct IRCBot* bot,Stringcp channel);
+void IRCBot_joinChannel(struct IRCBot* bot,StringCP channel);
+void IRCBot_partChannel(struct IRCBot* bot,StringCP channel);
 
-void IRCBot_sendMessage(struct IRCBot* bot,Stringcp target,Stringcp message);
+void IRCBot_sendMessage(struct IRCBot* bot,StringCP target,StringCP message);
 
  /**
  * Performs a registered command on the bot
@@ -104,6 +104,6 @@ void IRCBot_sendMessage(struct IRCBot* bot,Stringcp target,Stringcp message);
  * @param command_begin Pointer to the beginning of the command string
  * @param command_end   Pointer to the end of the command string
  */
-void IRCBot_performCommand(struct IRCBot* bot,Stringcp target,const char* command_begin,const char* command_end);
+void IRCBot_performCommand(struct IRCBot* bot,StringCP target,const char* command_begin,const char* command_end);
 
 #endif

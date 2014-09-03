@@ -1,65 +1,66 @@
 #include "Commands.h"
 
-#include "api/Command.h"
-#include <lolie/LinkedList.h>
-#include <lolie/DynamicArray.h>
-#include <lolie/Array.h>
+#include <lolien/seq/DynamicArray.h>
+#include <lolien/seq/Array.h>
 #include <string.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include "api/Command.h"
 
 /* ///////////////////////////////////////////////////
  * Type of commands list:
- *   struct DynamicArray<LinkedList<struct Command*>*>
+ *   DynamicArray<LinkedList<struct Command*>*>
  */
 
-bool initCommands(struct DynamicArray* commands){
+bool initCommands(DynamicArray* commands){
 	*commands=DynamicArray_init;
 
 	//Use length for checking if capacity changes when using registerCommand()
 	commands->length=commands->capacity;
-	DynamicArray_forEach(*commands,list){//Set all LinkedLists to the initial value
-		*list=LinkedList_init;
+	DynamicArray_FOREACH(*commands,list,DynamicArray){//Set all LinkedLists to the initial value
+		*list=DynamicArray_init;
 	}
 
-	return commands->array!=NULL;
+	return commands->data!=NULL;
 }
 
-void freeCommands(struct DynamicArray* commands){
+void freeCommands(DynamicArray* commands){
 	DynamicArray_free(commands);
 	//TODO: Free all the other resources
 }
 
-const struct Command* getCommand(const struct DynamicArray* commands,Stringcp name){
-	if(name.length>commands->capacity || DynamicArray__get(*commands,name.length)==NULL)
+const struct Command* getCommand(const DynamicArray* commands,StringCP name){
+	if(name.length>commands->capacity || DynamicArray_isEmpty(DynamicArray_GET(*commands,name.length,DynamicArray).constSeq))
 		return NULL;
 
-	LinkedList_forEach((LinkedList*)DynamicArray__get(*commands,name.length),node){
+	DynamicArray_FOREACH(DynamicArray_GET(*commands,name.length,DynamicArray),elem,struct Command*){
 //printf("Search command: %s\n",((struct Command*)node->ptr)->name.ptr);
-		if(memcmp(((struct Command*)node->ptr)->name.ptr,name.ptr,name.length)==0)
-			return (struct Command*)node->ptr;
+		if(memcmp((*elem)->name.ptr,name.ptr,name.length)==0)
+			return *elem;
 	}
 	return NULL;
 }
 
-bool registerCommand(struct DynamicArray* commands,const struct Command* command){
+bool registerCommand(DynamicArray* commands,const struct Command* command){
 	if(!command || command->name.length==0)
 		return false;
 
 	if(command->name.length+1>commands->capacity){//If the array needs to be resized for the new command
-		DynamicArray_resize(commands,command->name.length+1);
+		DynamicArray_resize(commands,command->name.length+1,sizeof(DynamicArray));
 
-		Array_forEach(((Array){commands->array+commands->length,commands->capacity-commands->length}),list){
-			*(LinkedList**)list=LinkedList_init;//Set all new LinkedLists to the initial value
+		Array_FOREACH(((ArrayP){.length=commands->capacity-commands->length,.data=commands->data + commands->length}),list,DynamicArray){
+			//Set all new LinkedLists to the initial value
+			*list = DynamicArray_init;
 		}
-		commands->length=commands->capacity;
+		commands->length = commands->capacity;
 	}
-	LinkedList_push((LinkedList**)&DynamicArray__get(*commands,command->name.length),command);
+	DynamicArray_add(&DynamicArray_GET(*commands,command->name.length,DynamicArray),command,sizeof(struct Command*));
 //printf("Size: %u, {%p,%p} -> %p\n",LinkedList_size(DynamicArray__get(*commands,command->name.length)),((LinkedList*)DynamicArray__get(*commands,command->name.length))->ptr,DynamicArray__get(*commands,command->name.length),((LinkedList*)DynamicArray__get(*commands,command->name.length))->next);
 
 	return true;
 }
 
-bool registerCommandsFromArray(struct DynamicArray* commands,const struct Command* cmds,size_t count){
+bool registerCommandsFromArray(DynamicArray* commands,const struct Command* cmds,size_t count){
 	if(!commands)
 		return false;
 
@@ -69,14 +70,15 @@ bool registerCommandsFromArray(struct DynamicArray* commands,const struct Comman
 				return false;
 
 			if(cmds->name.length+1>commands->capacity){//If the array needs to be resized for the new commands
-				DynamicArray_resize(commands,cmds->name.length+1);
+				DynamicArray_resize(commands,cmds->name.length+1,sizeof(DynamicArray));
 
-				Array_forEach(((Array){commands->array+commands->length,commands->capacity-commands->length}),list){
-					*(LinkedList**)list=LinkedList_init;//Set all new LinkedLists to the initial value
+				Array_FOREACH(((ArrayP){.length=commands->capacity-commands->length,.data=commands->data + commands->length}),list,DynamicArray){
+					//Set all new LinkedLists to the initial value
+					*list = DynamicArray_init;
 				}
 				commands->length=commands->capacity;
 			}
-			LinkedList_push((LinkedList**)&DynamicArray__get(*commands,cmds->name.length),cmds);
+			DynamicArray_add(&DynamicArray_GET(*commands,cmds->name.length,DynamicArray),cmds,sizeof(struct Command*));
 		}
 		++cmds;
 	}
@@ -84,29 +86,29 @@ bool registerCommandsFromArray(struct DynamicArray* commands,const struct Comman
 	return true;
 }
 
-bool unregisterCommand(struct DynamicArray* commands,const struct Command* command){
+bool unregisterCommand(DynamicArray* commands,const struct Command* command){
 	if(!command || command->name.length==0)
 		return false;
 
 	//For every command length list
 	for(size_t i=0;i<commands->capacity;++i){
-		printf("%lu Size: %lu\n",i,LinkedList_size(DynamicArray__get(*commands,i)));
-		if(!DynamicArray__get(*commands,i))
+		printf("%lu Size: %lu\n",i,DynamicArray_length(DynamicArray_GET(*commands,i,DynamicArray).constSeq));
+		if(DynamicArray_isEmpty(DynamicArray_GET(*commands,i,DynamicArray).constSeq))
 			continue;
 
-		LinkedList_forEach(DynamicArray__get(*commands,i),node){
-			printf("%p == %p\n",node->ptr,command);
+		DynamicArray_FOREACH(DynamicArray_GET(*commands,i,DynamicArray),node,struct Command*){
+			printf("%p == %p\n",*node,command);
 		}
 
 		//If command is found and removed
-		if(LinkedList_remove((LinkedList**)&DynamicArray__get(*commands,i),command))
+		if(LinkedList_remove((LinkedList**)&DynamicArray_GET(*commands,i,DynamicArray),command))
 			return true;
 	}
 
 	return false;
 }
 
-bool unregisterCommandByName(struct DynamicArray* commands,Stringcp commandName){
+bool unregisterCommandByName(DynamicArray* commands,StringCP commandName){
 	if(commandName.length>commands->capacity)
 		return false;
 
@@ -117,8 +119,8 @@ bool unregisterCommandByName(struct DynamicArray* commands,Stringcp commandName)
 	);
 }
 
-void unregisterCommands(struct DynamicArray* commands){
-	DynamicArray_forEach(*commands,list){
-		LinkedList_removeAll((LinkedList**)list);
+void unregisterCommands(DynamicArray* commands){
+	DynamicArray_FOREACH(*commands,list,DynamicArray){
+		DynamicArray_removeAll(list);
 	}
 }

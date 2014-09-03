@@ -2,14 +2,14 @@
 #define __LOLIROFLE_IRCBOT_IRCBOT_ERROR_H_INCLUDED__
 
 #include <lolien/types.h>
-#include <lolie/Stringp.h>
+#include <lolien/seq/StringP.h>
 
 struct IRCBot_Error{
 	ushort code;
-	Stringp message;
+	StringP message;
 };
 
-#define IRCBot_Error_init ((struct IRCBot_Error){0,Stringp_init})
+#define IRCBot_Error_init ((struct IRCBot_Error){0,StringP_init})
 
 #define IRCBOT_ERROR_CONNECT    1
 #define IRCBOT_ERROR_MEMORY     2

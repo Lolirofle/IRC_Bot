@@ -1,7 +1,7 @@
 #ifndef __LOLIROFLE_IRCBOT_API_COMMANDARGUMENT_H_INCLUDED__
 #define __LOLIROFLE_IRCBOT_API_COMMANDARGUMENT_H_INCLUDED__
 
-#include <lolie/Stringp.h>
+#include <lolien/seq/StringP.h>
 #include <lolien/types.h>
 
 struct CommandArgument{

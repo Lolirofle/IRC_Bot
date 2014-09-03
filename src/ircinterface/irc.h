@@ -1,8 +1,9 @@
 #ifndef __LOLIROFLE_IRC_IRC_H_INCLUDED__
 #define __LOLIROFLE_IRC_IRC_H_INCLUDED__
 
-#include <lolie/Stringp.h>
-#include <lolie/LinkedList.h>
+#include <lolien/seq/StringP.h>
+#include <lolien/seq/LinkedList.h>
+#include <sys/types.h>
 
 size_t strlen(const char* str);
 
@@ -75,18 +76,18 @@ typedef enum irc_message_command_type{
 }irc_message_command_type;
 
 typedef struct irc_message{
-	Stringcp raw_message;
+	StringCP raw_message;
 
 	irc_message_prefix_type prefix_type;
 	union{
 		struct{
-			Stringcp nickname;
-			Stringcp username;
-			Stringcp host;
+			StringCP nickname;
+			StringCP username;
+			StringCP host;
 		}user;
 
 		struct{
-			Stringcp name;
+			StringCP name;
 		}server;
 	}prefix;
 
@@ -94,84 +95,84 @@ typedef struct irc_message{
 	union{
 		irc_message_command_type enumerator;
 		unsigned short number;
-		Stringcp unknown;
+		StringCP unknown;
 	}command_type;
 	union{
 		struct{
-			Stringcp target;
-			Stringcp text;
+			StringCP target;
+			StringCP text;
 		}privmsg;
 
 		struct{
-			LinkedList/*<Stringcp>*/* channels;
-			LinkedList/*<Stringcp>*/* keys;
+			LinkedList/*<StringCP*>*/* channels;
+			LinkedList/*<StringCP*>*/* keys;
 		}join;
 
 		struct{
-			LinkedList/*<Stringcp>*/* channels;
-			Stringcp message;
+			LinkedList/*<StringCP*>*/* channels;
+			StringCP message;
 		}part;
 
 		struct{
-			Stringcp channel;
-			Stringcp text;
+			StringCP channel;
+			StringCP text;
 		}topic;
 
 		struct{
-			Stringcp target;
-			Stringcp text;
+			StringCP target;
+			StringCP text;
 		}notice;
 
 		struct{
-			LinkedList/*<Stringcp>*/* channels;
-			LinkedList/*<Stringcp>*/* users;
-			Stringcp comment;
+			LinkedList/*<StringCP*>*/* channels;
+			LinkedList/*<StringCP*>*/* users;
+			StringCP comment;
 		}kick;
 
 		struct{
-			Stringcp name;
+			StringCP name;
 		}nick;
 
 		struct{
-			Stringcp message;
+			StringCP message;
 		}quit;
 
 		struct{
-			Stringcp server;
-			Stringcp comment;
+			StringCP server;
+			StringCP comment;
 		}squit;
 		
 		struct{
-			Stringcp nickname;
+			StringCP nickname;
 			bool operation;
 			char mode;
 		}mode;
 
 		struct{
-			Stringcp nickname;
-			Stringcp comment;
+			StringCP nickname;
+			StringCP comment;
 		}kill;
 
 		struct{
-			Stringcp text;
+			StringCP text;
 		}away;
 
 		struct{
-			Stringcp message;
+			StringCP message;
 		}error;
 
 		struct{
-			Stringcp from;
-			Stringcp to;
+			StringCP from;
+			StringCP to;
 		}ping;
 
 		struct{
-			Stringcp from;
-			Stringcp to;
+			StringCP from;
+			StringCP to;
 		}pong;
 
 		struct{
-			Stringcp params;
+			StringCP params;
 		}unknown;
 	}command;
 }irc_message;
@@ -196,7 +197,7 @@ typedef struct irc_connection{
  *
  * @param id  Id of the connection
  * @param str String to be sent
- * @param len Length of Stringp to be sent
+ * @param len Length of StringP to be sent
  */
 void irc_send_raw(const irc_connection* connection,const char* str,size_t len);
 
@@ -266,9 +267,9 @@ inline void irc_part_channel(const irc_connection* connection,const char* channe
 	irc_send_rawf(connection,"PART %s\r\n",channel);
 }
 
-Stringcp irc_parse_message(const irc_connection* connection,Stringcp raw_message,irc_message* out);
+StringCP irc_parse_message(const irc_connection* connection,StringCP raw_message,irc_message* out);
 
-void irc_send_message(const irc_connection* connection,Stringcp target,Stringcp message);
+void irc_send_message(const irc_connection* connection,StringCP target,StringCP message);
 
 bool irc_read_message(const irc_connection* connection,void* user_data,void(*onMessageFunc)(const irc_connection* connection,const irc_message* message,void* user_data));
 
@@ -276,7 +277,7 @@ bool irc_read_message(const irc_connection* connection,void* user_data,void(*onM
  * Read data from the IRC connection and copy it to `out` string.
  * Behaves like the POSIX function `ssize_t read(int,void*,size_t)`
  */
-ssize_t irc_read(const irc_connection* connection,Stringp out);
+ssize_t irc_read(const irc_connection* connection,StringP out);
 
 bool irc_disconnect(const irc_connection* connection);
 

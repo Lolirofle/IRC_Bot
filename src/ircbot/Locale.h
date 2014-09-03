@@ -1,36 +1,36 @@
 #ifndef __LOLIROFLE_IRCBOT_LOCALE_H_INCLUDED__
 #define __LOLIROFLE_IRCBOT_LOCALE_H_INCLUDED__
 
-#include <lolie/Stringp.h>
+#include <lolien/seq/StringP.h>
 
 extern enum Languages language;
 
 struct Locale{
-	Stringcp lang_name;
+	StringCP lang_name;
 
-	Stringcp boolean[2];
+	StringCP boolean[2];
 
 	struct{
-		Stringcp set;
-		Stringcp unknown;
+		StringCP set;
+		StringCP unknown;
 	}language;
 
 	struct{
-		Stringcp ask;
-		Stringcp yes[10];
-		Stringcp maybe[5];
-		Stringcp no[5];
-		Stringcp failure;
+		StringCP ask;
+		StringCP yes[10];
+		StringCP maybe[5];
+		StringCP no[5];
+		StringCP failure;
 	}magic8ball;
 
 	struct{
-		Stringcp set;
-		Stringcp get;
+		StringCP set;
+		StringCP get;
 	}prefix;
 
-	Stringcp missing_argument;
-	Stringcp unknown_command;
-	Stringcp command_error;
+	StringCP missing_argument;
+	StringCP unknown_command;
+	StringCP command_error;
 };
 
 enum Languages{

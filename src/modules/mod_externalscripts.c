@@ -9,7 +9,7 @@
 #include <ircbot/api/Commands.h>
 #include <ircbot/pipes.h>
 #include <lolien/types.h>
-#include <lolie/Stringp.h>
+#include <lolien/seq/StringP.h>
 
 const char plugin_version[] ="1.2";
 const char plugin_author[]  ="Lolirofle";
@@ -20,12 +20,12 @@ static char buffer[BUFFER_LENGTH];
 #define SCRIPT_PATH SCRIPT_DIR "/"
 #define SCRIPT_PATH_LEN 18
 
-bool plugin_onCommand(struct IRCBot* bot,Stringcp target,Stringcp command,struct CommandArgument* arg){
+bool plugin_onCommand(struct IRCBot* bot,StringCP target,StringCP command,struct CommandArgument* arg){
 	//Copy path and command string to a buffer
 	char cmd[SCRIPT_PATH_LEN+command.length+1];
 	memcpy(cmd,SCRIPT_PATH,SCRIPT_PATH_LEN);
 	char* cmd_iterator=cmd+SCRIPT_PATH_LEN;
-	for(Stringcp commandStr=command;commandStr.length>0;++commandStr.ptr,--commandStr.length){
+	for(StringCP commandStr=command;commandStr.length>0;++commandStr.ptr,--commandStr.length){
 		if(!isalnum(*commandStr.ptr))
 			return true;
 		*cmd_iterator++=*commandStr.ptr;
@@ -72,9 +72,9 @@ static struct Command c;
 
 bool plugin_onLoad(struct IRCBot* bot){
 	c=(struct Command){
-		Stringcp_from_cstr("extcmds"),
-		Stringcp_from_cstr("Lists all external commands"),
-		function(bool,(struct IRCBot* bot,Stringcp target,struct CommandArgument* arg){
+		StringCP_fromCStr("extcmds"),
+		StringCP_fromCStr("Lists all external commands"),
+		function(bool,(struct IRCBot* bot,StringCP target,struct CommandArgument* arg){
 			DIR* directory;
 			struct dirent* dir;
 			char* writePtr=write_buffer;

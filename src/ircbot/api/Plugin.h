@@ -1,9 +1,9 @@
 #ifndef __LOLIROFLE_IRCBOT_API_PLUGIN_H_INCLUDED__
 #define __LOLIROFLE_IRCBOT_API_PLUGIN_H_INCLUDED__
 
-#include <lolie/LinkedList.h>
+#include <lolien/seq/LinkedList.h>
+#include <lolien/seq/StringP.h>
 #include <lolien/types.h>
-#include <lolie/Stringp.h>
 struct IRCBot;
 struct CommandArgument;
 struct irc_message;
@@ -30,7 +30,7 @@ struct Plugin{
 		 *
 		 * @return Returns whether the bot should connect to the specified address
 		 */
-		bool(*onConnect)(struct IRCBot* bot,Stringcp hostname,unsigned short port);
+		bool(*onConnect)(struct IRCBot* bot,StringCP hostname,unsigned short port);
 
 		/**
 		 * Called before disconnecting
@@ -44,7 +44,7 @@ struct Plugin{
 		 *
 		 * @return Returns whether it should continue searching for a command
 		 */
-		bool(*onCommand)(struct IRCBot* bot,Stringcp target,Stringcp command,struct CommandArgument* arg);
+		bool(*onCommand)(struct IRCBot* bot,StringCP target,StringCP command,struct CommandArgument* arg);
 
 		/**
 		 * Called after parsing a message and before parsing commands
@@ -58,21 +58,21 @@ struct Plugin{
 		 *
 		 * @return Returns whether it should proceed to send the message
 		 */ //TODO: Implement
-		bool(*onMessageSend)(struct IRCBot* bot,Stringcp message);
+		bool(*onMessageSend)(struct IRCBot* bot,StringCP message);
 
 		/**
 		 * Called before bot joins a channel
 		 *
 		 * @return Returns whether it should join the channel
 		 */
-		bool(*onJoin)(struct IRCBot* bot,Stringcp channel);
+		bool(*onJoin)(struct IRCBot* bot,StringCP channel);
 
 		/**
 		 * Called before bot parts from a channel
 		 *
 		 * @return Returns whether it should part from the channel
 		 */
-		bool(*onPart)(struct IRCBot* bot,Stringcp channel);
+		bool(*onPart)(struct IRCBot* bot,StringCP channel);
 	}functions;
 
 	struct{

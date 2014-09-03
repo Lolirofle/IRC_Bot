@@ -2,10 +2,10 @@
 #define __LOLIROFLE_IRCBOT_COMMANDS_H_INCLUDED__
 
 #include <lolien/types.h>
-#include <lolie/Stringp.h>
+#include <lolien/seq/DynamicArray.h>
 #include "api/Commands.h"
 
-bool initCommands(struct DynamicArray* commands);
-void freeCommands(struct DynamicArray* commands);
+bool initCommands(DynamicArray* commands);
+void freeCommands(DynamicArray* commands);
 
 #endif

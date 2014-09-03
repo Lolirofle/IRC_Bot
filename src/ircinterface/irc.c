@@ -5,11 +5,10 @@
 #include <stdlib.h>//Standard definitions
 #include <string.h>
 
-#include <lolie/Stringp.h>//Null terminatd Stringp operations
-#include <lolie/Memory.h>//memeq
-#include <lolie/LinkedList.h>
+#include <lolien/seq/StringP.h>//Null terminatd StringP operations
+#include <lolien/seq/LinkedList.h>
+#include <lolien/math/convert.h>
 #include <lolien/controlstructures.h>
-#include <lolie/Math.h>
 
 #include <unistd.h>//Unix standard library
 #include <netdb.h> //Networking
@@ -27,7 +26,8 @@ void irc_send_rawf(const irc_connection* connection,const char* format,...){
 bool irc_connect(const char* host,unsigned short port,irc_connection* out_connection){
 	struct addrinfo hints,
 	               *result;
-	char portStr[6];portStr[intToDecStr((long)port,STRINGP(portStr,6))]='\0';
+	char portStr[6];
+	portStr[intToDecStr((long)port,STRINGP(portStr,6))]='\0';
 
 	printf("Connecting to `%s:%s`\n",host,portStr);
 
@@ -59,17 +59,16 @@ bool irc_disconnect(const irc_connection* connection){
 
 void irc_send_raw(const irc_connection* connection,const char* str,size_t len){
 	//stdout verbose output
-	Stringp_put(STRINGP(">> ",3),stdout);
-	Stringp_put(STRINGP(str,len),stdout);
+	printf(">> " STRINGP_FORMAT_STR "\n",STRINGP_FORMAT(STRINGCP(str,len)));
 
 	//Write to server
 	write(connection->id,str,len);
 }
 
-void irc_send_message(const irc_connection* connection,Stringcp target,Stringcp message){
+void irc_send_message(const irc_connection* connection,StringCP target,StringCP message){
 	char write_buffer[message.length+target.length+12];
 
-	int len = Stringp_vcopy(STRINGP(write_buffer,IRC_BUFFER_LENGTH),5,
+	int len = StringP_vcopy(STRINGP(write_buffer,IRC_BUFFER_LENGTH),5,
 		STRINGCP("PRIVMSG ",8),
 		target,
 		STRINGCP(" :",2),
@@ -295,7 +294,7 @@ static bool irc_parse_param_error(struct irc_message* out,byte param_count,const
 	return true;
 }
 
-Stringcp irc_parse_message(const irc_connection* connection,Stringcp raw_message,irc_message* out){
+StringCP irc_parse_message(const irc_connection* connection,StringCP raw_message,irc_message* out){
 	const char* read_ptr       = raw_message.ptr,
 	          * read_ptr_begin = read_ptr,
 	          *const read_ptr_end = raw_message.ptr + raw_message.length;
@@ -399,107 +398,107 @@ Stringcp irc_parse_message(const irc_connection* connection,Stringcp raw_message
 					}
 					goto NotFoundMessageType;
 				case 4:
-					if(memeq(read_ptr_begin,"JOIN",4)){
+					if(memcmp(read_ptr_begin,"JOIN",4)==0){
 						out->command_type.enumerator = IRC_MESSAGE_COMMAND_TYPE_JOIN;
 						out->command.join.channels = NULL;
 						out->command.join.keys     = NULL;
 						irc_parse_param = irc_parse_param_join;
 						break;
 					}
-					if(memeq(read_ptr_begin,"PART",4)){
+					if(memcmp(read_ptr_begin,"PART",4)==0){
 						out->command_type.enumerator = IRC_MESSAGE_COMMAND_TYPE_PART;
 						out->command.part.channels = NULL;
-						out->command.part.message  = Stringcp_init;
+						out->command.part.message  = StringCP_init;
 						irc_parse_param = irc_parse_param_part;
 						break;
 					}
-					if(memeq(read_ptr_begin,"PING",4)){
+					if(memcmp(read_ptr_begin,"PING",4)==0){
 						out->command_type.enumerator = IRC_MESSAGE_COMMAND_TYPE_PING;
 						irc_parse_param = irc_parse_param_ping;
 						break;
 					}
-					if(memeq(read_ptr_begin,"PONG",4)){
+					if(memcmp(read_ptr_begin,"PONG",4)==0){
 						out->command_type.enumerator = IRC_MESSAGE_COMMAND_TYPE_PONG;
 						irc_parse_param = irc_parse_param_pong;
 						break;
 					}
-					if(memeq(read_ptr_begin,"NICK",4)){
+					if(memcmp(read_ptr_begin,"NICK",4)==0){
 						out->command_type.enumerator = IRC_MESSAGE_COMMAND_TYPE_NICK;
-						out->command.nick.name = Stringcp_init;
+						out->command.nick.name = StringCP_init;
 						irc_parse_param = irc_parse_param_nick;
 						break;
 					}
-					if(memeq(read_ptr_begin,"KICK",4)){
+					if(memcmp(read_ptr_begin,"KICK",4)==0){
 						out->command_type.enumerator = IRC_MESSAGE_COMMAND_TYPE_KICK;
 						out->command.kick.channels = NULL;
 						out->command.kick.users    = NULL;
 						irc_parse_param = irc_parse_param_kick;
 						break;
 					}
-					if(memeq(read_ptr_begin,"QUIT",4)){
+					if(memcmp(read_ptr_begin,"QUIT",4)==0){
 						out->command_type.enumerator = IRC_MESSAGE_COMMAND_TYPE_QUIT;
-						out->command.quit.message = Stringcp_init;
+						out->command.quit.message = StringCP_init;
 						irc_parse_param = irc_parse_param_quit;
 						break;
 					}
-					if(memeq(read_ptr_begin,"MODE",4)){
+					if(memcmp(read_ptr_begin,"MODE",4)==0){
 						out->command_type.enumerator = IRC_MESSAGE_COMMAND_TYPE_MODE;
-						out->command.mode.nickname  = Stringcp_init;
+						out->command.mode.nickname  = StringCP_init;
 						out->command.mode.operation = false;
 						out->command.mode.mode      = '\0';
 						irc_parse_param = irc_parse_param_mode;
 						break;
 					}
-					if(memeq(read_ptr_begin,"KILL",4)){
+					if(memcmp(read_ptr_begin,"KILL",4)==0){
 						out->command_type.enumerator = IRC_MESSAGE_COMMAND_TYPE_KILL;
-						out->command.kill.nickname = Stringcp_init;
-						out->command.kill.comment  = Stringcp_init;
+						out->command.kill.nickname = StringCP_init;
+						out->command.kill.comment  = StringCP_init;
 						irc_parse_param = irc_parse_param_kill;
 						break;
 					}
-					if(memeq(read_ptr_begin,"AWAY",4)){
+					if(memcmp(read_ptr_begin,"AWAY",4)==0){
 						out->command_type.enumerator = IRC_MESSAGE_COMMAND_TYPE_AWAY;
-						out->command.away.text = Stringcp_init;
+						out->command.away.text = StringCP_init;
 						irc_parse_param = irc_parse_param_away;
 						break;
 					}
 					goto NotFoundMessageType;
 				case 5:
-					if(memeq(read_ptr_begin,"TOPIC",5)){
+					if(memcmp(read_ptr_begin,"TOPIC",5)==0){
 						out->command_type.enumerator = IRC_MESSAGE_COMMAND_TYPE_TOPIC;
-						out->command.topic.channel = Stringcp_init;
-						out->command.topic.text    = Stringcp_init;
+						out->command.topic.channel = StringCP_init;
+						out->command.topic.text    = StringCP_init;
 						irc_parse_param = irc_parse_param_topic;
 						break;
 					}
-					if(memeq(read_ptr_begin,"SQUIT",5)){
+					if(memcmp(read_ptr_begin,"SQUIT",5)==0){
 						out->command_type.enumerator = IRC_MESSAGE_COMMAND_TYPE_SQUIT;
-						out->command.squit.server  = Stringcp_init;
-						out->command.squit.comment = Stringcp_init;
+						out->command.squit.server  = StringCP_init;
+						out->command.squit.comment = StringCP_init;
 						irc_parse_param = irc_parse_param_squit;
 						break;
 					}
-					if(memeq(read_ptr_begin,"ERROR",5)){
+					if(memcmp(read_ptr_begin,"ERROR",5)==0){
 						out->command_type.enumerator = IRC_MESSAGE_COMMAND_TYPE_ERROR;
-						out->command.error.message = Stringcp_init;
+						out->command.error.message = StringCP_init;
 						irc_parse_param = irc_parse_param_error;
 						break;
 					}
 					goto NotFoundMessageType;
 				case 6:
-					if(memeq(read_ptr_begin,"NOTICE",6)){
+					if(memcmp(read_ptr_begin,"NOTICE",6)==0){
 						out->command_type.enumerator = IRC_MESSAGE_COMMAND_TYPE_NOTICE;
-						out->command.notice.target = Stringcp_init;
-						out->command.notice.text   = Stringcp_init;
+						out->command.notice.target = StringCP_init;
+						out->command.notice.text   = StringCP_init;
 						irc_parse_param = irc_parse_param_notice;
 						break;
 					}
 					goto NotFoundMessageType;
 				case 7:
-					if(memeq(read_ptr_begin,"PRIVMSG",7)){
+					if(memcmp(read_ptr_begin,"PRIVMSG",7)==0){
 						out->command_type.enumerator = IRC_MESSAGE_COMMAND_TYPE_PRIVMSG;
-						out->command.privmsg.target = Stringcp_init;
-						out->command.privmsg.text   = Stringcp_init;
+						out->command.privmsg.target = StringCP_init;
+						out->command.privmsg.text   = StringCP_init;
 						irc_parse_param = irc_parse_param_privmsg;
 						break;
 					}
@@ -613,7 +612,7 @@ bool irc_read_message(const irc_connection* connection,void* user_data,void(*onM
 		Stringp_put(STRINGP(connection->read_buffer,read_len),stdout);
 
 		irc_message message;
-		Stringcp read_string = STRINGCP(connection->read_buffer,read_len);
+		StringCP read_string = STRINGCP(connection->read_buffer,read_len);
 		do{
 			read_string = irc_parse_message(connection,read_string,&message);
 			onMessageFunc(connection,&message,user_data);
@@ -624,7 +623,7 @@ bool irc_read_message(const irc_connection* connection,void* user_data,void(*onM
 	return false;
 }
 
-ssize_t irc_read(const irc_connection* connection,Stringp out){
+ssize_t irc_read(const irc_connection* connection,StringP out){
 	return read(connection->id,out.ptr,out.length);
 }
 

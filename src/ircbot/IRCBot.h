@@ -4,13 +4,13 @@
 #include "api/IRCBot.h"
 
 #include <lolien/types.h>
-#include <lolie/Stringp.h>
+#include <lolien/seq/StringP.h>
 #include "ircinterface/irc.h"
 
 bool IRCBot_initialize(struct IRCBot* bot);
 bool IRCBot_free(struct IRCBot* bot);
 
-bool IRCBot_connect(struct IRCBot* bot,Stringcp host,unsigned short port);
+bool IRCBot_connect(struct IRCBot* bot,StringCP host,unsigned short port);
 bool IRCBot_disconnect(struct IRCBot* bot);
 
 enum IRCBot_Exit IRCBot_waitEvents(struct IRCBot* bot);

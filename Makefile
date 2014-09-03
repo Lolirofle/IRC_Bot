@@ -3,8 +3,8 @@ CC=gcc
 CFLAGS=-Wall -std=gnu99
 CFLAGS_BIN=-DTIMESTAMP=\"$(TIMESTAMP)\"
 CFLAGS_LIB=-fPIC
-LDFLAGS=-llolie
-LDFLAGS_BIN=-ldl -Wl,-export-dynamic
+LDFLAGS=-llolien
+LDFLAGS_BIN=-lconfig -largp -ldl -Wl,-export-dynamic
 LDFLAGS_LIB=
 
 BINDIR=bin
